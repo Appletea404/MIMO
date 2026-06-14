@@ -1,4 +1,4 @@
-# SkinScope v7
+# SkinScope v8
 
 피부 프로필과 고민 문장을 바탕으로 케어 방향과 성분을 안내하고, 유사한
 올리브영 스킨케어 리뷰를 검색하는 Flask 애플리케이션입니다.
@@ -6,10 +6,10 @@
 ## 실행
 
 ```bash
-.venv/bin/python web_app_v7.py
+.venv/bin/python web_app_v8.py
 ```
 
-기본 주소는 `http://127.0.0.1:5004`입니다. 운영 환경에서는 관리자 계정과
+기본 주소는 `http://127.0.0.1:5005`입니다. 운영 환경에서는 관리자 계정과
 세션 키를 환경 변수로 지정하세요.
 
 ```bash
@@ -17,19 +17,19 @@ export SKINSCOPE_SECRET_KEY='replace-with-a-random-secret'
 export SKINSCOPE_ADMIN_USERNAME='admin'
 export SKINSCOPE_ADMIN_PASSWORD='replace-with-a-strong-password'
 export SKINSCOPE_ADMIN_EMAIL='admin@example.com'
-.venv/bin/python web_app_v7.py
+.venv/bin/python web_app_v8.py
 ```
 
 선택 가능한 실행 설정:
 
 - `SKINSCOPE_HOST`: 기본값 `127.0.0.1`
-- `SKINSCOPE_PORT`: 기본값 `5004`
+- `SKINSCOPE_PORT`: 기본값 `5005`
 - `SKINSCOPE_DEBUG`: `1`, `true`, `yes` 중 하나일 때만 디버그 모드 활성화
 
 ## 테스트
 
 ```bash
-.venv/bin/python -m unittest -v test_web_app_v7.py
+.venv/bin/python -m unittest -v test_web_app_v8.py
 ```
 
 테스트는 임시 SQLite 데이터베이스를 사용하며 추천 API, 회원가입 검증,
@@ -37,7 +37,7 @@ export SKINSCOPE_ADMIN_EMAIL='admin@example.com'
 
 ## v4_rebuild 데이터 및 알고리즘
 
-v7 전문가 분석은 `web_app_v4_rebuild.py`와 같은 핵심 파이프라인을 사용합니다.
+v8 전문가 분석은 `web_app_v4_rebuild.py`와 같은 핵심 파이프라인을 사용합니다.
 
 1. `datasets/skin_data_final.csv`의 `User Question`을 Okt로 형태소 분석
 2. 명사·동사·형용사, 2글자 이상, `datasets/stopwords.csv` 제외

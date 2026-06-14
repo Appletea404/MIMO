@@ -38,7 +38,7 @@ def load_secret_key(instance_path):
 app = Flask(__name__, instance_relative_config=True)
 app.config.update(
     SECRET_KEY=load_secret_key(app.instance_path),
-    DATABASE=Path(app.instance_path) / 'users_v7.db',
+    DATABASE=Path(app.instance_path) / 'users_v8.db',
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE='Lax',
     PERMANENT_SESSION_LIFETIME=60 * 60 * 8,
@@ -341,7 +341,7 @@ def index():
             (g.user['id'],),
         ).fetchall()
     return render_template(
-        'index_7.html', recent_history=recent_history,
+        'index_8.html', recent_history=recent_history,
         popular_terms=get_popular_terms(),
     )
 
@@ -349,7 +349,7 @@ def index():
 @app.route('/analysis')
 def analysis():
     return render_template(
-        'analysis_7.html',
+        'analysis_8.html',
         review_mode_available=df_reviews is not None and len(df_reviews) > 0,
     )
 
@@ -389,7 +389,7 @@ def register():
                 flash('회원가입이 완료되었습니다. 로그인해 주세요.', 'success')
                 return redirect(url_for('login'))
         flash(error, 'error')
-    return render_template('auth_7.html', mode='register')
+    return render_template('auth_8.html', mode='register')
 
 
 def validate_registration(username, name, email, password, password_confirm):
@@ -427,7 +427,7 @@ def login():
             if next_url and is_safe_redirect(next_url):
                 return redirect(next_url)
             return redirect(url_for('admin_users' if user['role'] == 'admin' else 'index'))
-    return render_template('auth_7.html', mode='login')
+    return render_template('auth_8.html', mode='login')
 
 
 @app.post('/logout')
@@ -465,7 +465,7 @@ def admin_users():
            ORDER BY search_history.id DESC LIMIT 20'''
     ).fetchall()
     return render_template(
-        'admin_7.html', users=users, stats=stats,
+        'admin_8.html', users=users, stats=stats,
         recent_searches=recent_searches, popular_terms=get_popular_terms(),
     )
 
@@ -677,6 +677,6 @@ if __name__ == '__main__':
     debug_enabled = os.environ.get('SKINSCOPE_DEBUG', '').lower() in {'1', 'true', 'yes'}
     app.run(
         host=os.environ.get('SKINSCOPE_HOST', '127.0.0.1'),
-        port=int(os.environ.get('SKINSCOPE_PORT', '5004')),
+        port=int(os.environ.get('SKINSCOPE_PORT', '5005')),
         debug=debug_enabled,
     )

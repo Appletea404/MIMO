@@ -516,14 +516,15 @@ def build_response(row, user_input, gender, age, skin_type):
     if rec_ing_text != "nan":
         search_terms.extend(okt.nouns(rec_ing_text))
     
-    # 중복 제거 및 필터링
-    search_terms = [t for t in list(dict.fromkeys(search_terms)) if len(t) >= 2 and t not in ['피부', '추출물', '사용', '도움', '성분']]
+    # 중복 제거 및 필터링 (품사/길이/의미 기반)
+    search_terms = [t for t in list(dict.fromkeys(search_terms)) 
+                    if len(t) >= 2 and t not in stopwords and t not in ['피부', '추출물', '사용', '도움', '성분', '부분', '제품']]
     
     matched_links = []
     seen_links = set()
     
     for keyword in search_terms[:4]:
-        # 1. 제품명/브랜드 검색
+        # 1. 제품명/브랜드 검색 (정확도 최우선)
         matches = df_product_list[
             df_product_list['product_name'].str.contains(keyword, case=False, na=False) |
             df_product_list['product_brand'].str.contains(keyword, case=False, na=False)
@@ -534,9 +535,10 @@ def build_response(row, user_input, gender, age, skin_type):
                 matched_links.append({'brand': m['product_brand'], 'name': m['product_name'], 'link': m['product_link']})
                 seen_links.add(m['product_link'])
         
-        # 2. 리뷰 검색 (Proxy)
+        # 2. 리뷰 검색 (Proxy) - 💡 오탐 방지를 위해 'cleaned_review'에서 검색
         if df_reviews is not None:
-            r_matches = df_reviews[df_reviews['review'].str.contains(keyword, na=False)].head(1)
+            # 텍스트 파편 매칭 방지를 위해 앞뒤 공백을 고려하거나 정제된 리뷰 필드 활용
+            r_matches = df_reviews[df_reviews['cleaned_review'].str.contains(keyword, na=False)].head(1)
             for _, rm in r_matches.iterrows():
                 p_info = df_product_list[df_product_list['product_name'] == rm['product_name']].head(1)
                 if not p_info.empty and p_info.iloc[0]['product_link'] not in seen_links:

@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>스킨케어 추천 시스템 전체 흐름도</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: #0f1117;
+    color: #e8eaf0;
+    min-height: 100vh;
+    padding: 32px;
+  }
+
+  /* ─── 헤더 ─── */
+  .header {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+  .header h1 {
+    font-size: 2rem;
+    font-weight: 900;
+    background: linear-gradient(135deg, #7ee8fa, #80ff72, #ff9a9e);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.5px;
+  }
+  .header p {
+    margin-top: 6px;
+    font-size: 0.85rem;
+    color: #8892a4;
+  }
+
+  /* ─── 메인 그리드 ─── */
+  .flow-grid {
+    display: grid;
+    grid-template-columns: 1fr 48px 1fr 48px 1fr;
+    grid-template-rows: auto auto auto;
+    gap: 0;
+    align-items: center;
+    max-width: 1300px;
+    margin: 0 auto;
+  }
+
+  /* ─── 카드 공통 ─── */
+  .card {
+    border-radius: 14px;
+    padding: 18px 20px;
+    position: relative;
+    border: 1.5px solid transparent;
+  }
+  .card-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 10px;
+    opacity: 0.7;
+  }
+  .card-main {
+    font-size: 1.05rem;
+    font-weight: 700;
+    line-height: 1.4;
+  }
+  .card-sub {
+    font-size: 0.78rem;
+    margin-top: 8px;
+    line-height: 1.6;
+    opacity: 0.8;
+  }
+  .badge {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 20px;
+    margin: 3px 3px 0 0;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* ─── 색상 테마 ─── */
+  .theme-user {
+    background: linear-gradient(135deg, #1a1f35, #1e2a4a);
+    border-color: #3d6ef5;
+  }
+  .theme-user .card-title { color: #7eb3ff; }
+  .theme-user .badge { background: #1e3a7a; color: #7eb3ff; }
+
+  .theme-infra {
+    background: linear-gradient(135deg, #1a2a1a, #1e3a1e);
+    border-color: #3db85a;
+  }
+  .theme-infra .card-title { color: #80ff90; }
+  .theme-infra .badge { background: #1a3a1a; color: #80ff90; }
+
+  .theme-ai {
+    background: linear-gradient(135deg, #2a1a35, #3a1e4a);
+    border-color: #9d4edd;
+  }
+  .theme-ai .card-title { color: #d580ff; }
+  .theme-ai .badge { background: #3a1a4a; color: #d580ff; }
+
+  .theme-data {
+    background: linear-gradient(135deg, #2a1f0a, #3a2a0a);
+    border-color: #e8a020;
+  }
+  .theme-data .card-title { color: #ffcc60; }
+  .theme-data .badge { background: #3a2a0a; color: #ffcc60; }
+
+  .theme-result {
+    background: linear-gradient(135deg, #2a1a1a, #3a1e1e);
+    border-color: #e84040;
+  }
+  .theme-result .card-title { color: #ff8080; }
+  .theme-result .badge { background: #3a1a1a; color: #ff8080; }
+
+  /* ─── 화살표 ─── */
+  .arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    font-size: 1.6rem;
+    color: #4a5568;
+  }
+  .arrow span {
+    font-size: 0.6rem;
+    color: #4a5568;
+    text-align: center;
+    margin-top: 2px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .arrow-down {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 0;
+    font-size: 1.4rem;
+    color: #4a5568;
+  }
+
+  /* ─── AI 파이프라인 박스 (가로 스텝) ─── */
+  .pipeline-wrapper {
+    grid-column: 1 / -1;
+    margin: 24px 0;
+  }
+  .pipeline-label {
+    text-align: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: #9d4edd;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .pipeline {
+    display: grid;
+    grid-template-columns: 1fr 36px 1fr 36px 1fr 36px 1fr;
+    gap: 0;
+    align-items: stretch;
+    background: #14101e;
+    border: 1.5px solid #3a2a4a;
+    border-radius: 16px;
+    padding: 20px;
+  }
+  .pipe-step {
+    background: linear-gradient(160deg, #1e1230, #2a1a40);
+    border: 1px solid #4a2a70;
+    border-radius: 10px;
+    padding: 14px 16px;
+    text-align: center;
+  }
+  .pipe-num {
+    display: inline-block;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #9d4edd;
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 900;
+    line-height: 22px;
+    margin-bottom: 8px;
+  }
+  .pipe-name {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #d580ff;
+    margin-bottom: 6px;
+  }
+  .pipe-tech {
+    font-size: 0.68rem;
+    font-family: 'JetBrains Mono', monospace;
+    color: #7a5a99;
+    margin-bottom: 6px;
+  }
+  .pipe-desc {
+    font-size: 0.72rem;
+    color: #9a80b0;
+    line-height: 1.5;
+  }
+  .pipe-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #4a3a5a;
+    font-size: 1.3rem;
+  }
+
+  /* ─── 하단 2열 (데이터 + 결과) ─── */
+  .bottom-grid {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 1fr 48px 1fr;
+    gap: 0;
+    align-items: center;
+  }
+
+  /* ─── 데이터 레이어 ─── */
+  .data-layer {
+    background: #120e04;
+    border: 1.5px solid #5a4010;
+    border-radius: 14px;
+    padding: 18px 20px;
+  }
+  .data-layer-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: #ffcc60;
+    opacity: 0.7;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .data-files {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .data-file {
+    background: #1a1404;
+    border: 1px solid #4a3210;
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .data-file-name {
+    font-size: 0.72rem;
+    font-family: 'JetBrains Mono', monospace;
+    color: #ffcc60;
+    font-weight: 700;
+    margin-bottom: 3px;
+  }
+  .data-file-desc {
+    font-size: 0.68rem;
+    color: #8a7040;
+    line-height: 1.4;
+  }
+
+  /* ─── 결과 레이어 ─── */
+  .result-card {
+    background: linear-gradient(135deg, #1a0a0a, #2a1010);
+    border: 1.5px solid #8a2020;
+    border-radius: 14px;
+    padding: 18px 20px;
+  }
+  .result-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: #ff8080;
+    opacity: 0.7;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .result-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 10px;
+    padding: 10px 12px;
+    background: #1e0e0e;
+    border-radius: 8px;
+    border-left: 3px solid #8a2020;
+  }
+  .result-icon { font-size: 1.2rem; }
+  .result-text { font-size: 0.78rem; color: #c08080; line-height: 1.5; }
+  .result-text strong { color: #ff9090; display: block; margin-bottom: 2px; }
+
+  /* ─── 상단 3열 (사용자 → 서버 → DB) ─── */
+  .top-row {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 1fr 48px 1fr 48px 1fr;
+    gap: 0;
+    align-items: center;
+    margin-bottom: 0;
+  }
+
+  /* ─── 수직 구분선 ─── */
+  .section-divider {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 20px 0 16px;
+  }
+  .section-divider::before,
+  .section-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #2a2a3a, transparent);
+  }
+  .section-divider-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: #3a3a5a;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  /* ─── 스텝 번호 오버레이 ─── */
+  .step-badge {
+    position: absolute;
+    top: -10px;
+    left: 16px;
+    background: #9d4edd;
+    color: white;
+    font-size: 0.62rem;
+    font-weight: 900;
+    padding: 2px 8px;
+    border-radius: 10px;
+    letter-spacing: 0.5px;
+  }
+
+  /* ─── 범례 ─── */
+  .legend {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    margin-top: 28px;
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 0.72rem;
+    color: #5a6070;
+  }
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+
+  /* ─── 인쇄 / 프레젠테이션 ─── */
+  @media print {
+    body { background: white; color: black; padding: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 헤더 -->
+<div class="header">
+  <h1>🧴 스킨케어 추천 시스템 — 전체 흐름도</h1>
+  <p>SkinScope &nbsp;|&nbsp; Flask + KoNLPy + TF-IDF + Cosine Similarity &nbsp;|&nbsp; Raspberry Pi 4 Server</p>
+</div>
+
+<!-- ══════════════════════════════════════════
+     ROW 1 : 사용자 → 서버 → 인증/DB
+═══════════════════════════════════════════ -->
+<div style="max-width:1300px; margin:0 auto;">
+
+  <!-- 상단 3열 -->
+  <div class="top-row">
+
+    <!-- 1. 사용자 -->
+    <div class="card theme-user" style="position:relative;">
+      <div class="step-badge" style="background:#3d6ef5;">STEP 1</div>
+      <div class="card-title">👤 사용자 (Browser)</div>
+      <div class="card-main">질문 입력 + 피부 프로필</div>
+      <div class="card-sub">
+        <span class="badge">피부 타입</span>
+        <span class="badge">고민</span>
+        <span class="badge">자연어 질문</span>
+        <br>
+        예) <em>"건성 피부인데 각질이 심하게 일어나요"</em>
+      </div>
+    </div>
+
+    <!-- 화살표 -->
+    <div class="arrow">
+      <div>→</div>
+      <span>HTTP POST<br>/recommend</span>
+    </div>
+
+    <!-- 2. 서버 인프라 -->
+    <div class="card theme-infra" style="position:relative;">
+      <div class="step-badge" style="background:#3db85a;">STEP 2</div>
+      <div class="card-title">🖥️ 서버 인프라 (Raspberry Pi 4)</div>
+      <div class="card-main">Gunicorn + Flask</div>
+      <div class="card-sub">
+        <span class="badge">Ubuntu 22.04 LTS</span>
+        <span class="badge">10.10.59.205:5000</span>
+        <br>
+        <span class="badge">gunicorn -w 2 -b 0.0.0.0:5000</span>
+        <br>
+        라우트: <code style="font-size:0.72rem; color:#60d075;">/</code> · <code style="font-size:0.72rem; color:#60d075;">/recommend</code> · <code style="font-size:0.72rem; color:#60d075;">/analysis</code>
+      </div>
+    </div>
+
+    <!-- 화살표 -->
+    <div class="arrow">
+      <div>⇄</div>
+      <span>SQLite<br>쿼리</span>
+    </div>
+
+    <!-- 3. 데이터베이스 -->
+    <div class="card theme-data" style="position:relative;">
+      <div class="step-badge" style="background:#e8a020;">DB</div>
+      <div class="card-title">🗄️ 인증 & 이력 (SQLite)</div>
+      <div class="card-main">users.db</div>
+      <div class="card-sub">
+        <span class="badge">users 테이블</span>
+        <span class="badge">search_history 테이블</span>
+        <br>
+        로그인·회원가입·검색기록 저장<br>
+        CSRF 토큰 · 비밀번호 해시(werkzeug)
+      </div>
+    </div>
+
+  </div><!-- /top-row -->
+
+  <!-- 구분선 -->
+  <div class="section-divider">
+    <div class="section-divider-label">AI 추천 파이프라인 (핵심 알고리즘)</div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       ROW 2 : AI 파이프라인
+  ═══════════════════════════════════════════ -->
+  <div class="pipeline">
+
+    <!-- Step 1: Okt 형태소 분석 -->
+    <div class="pipe-step">
+      <div class="pipe-num">1</div>
+      <div class="pipe-name">형태소 분석</div>
+      <div class="pipe-tech">KoNLPy Okt</div>
+      <div class="pipe-desc">
+        한국어 자연어 입력을<br>
+        <strong style="color:#b070e0;">명사·동사·형용사</strong>로 분해<br>
+        <br>
+        "건성 피부 각질" →<br>
+        <code style="font-size:0.65rem; color:#9060c0;">['건성', '피부', '각질']</code>
+      </div>
+    </div>
+
+    <div class="pipe-arrow">→</div>
+
+    <!-- Step 2: TF-IDF 벡터화 -->
+    <div class="pipe-step">
+      <div class="pipe-num">2</div>
+      <div class="pipe-name">텍스트 벡터화</div>
+      <div class="pipe-tech">TF-IDF</div>
+      <div class="pipe-desc">
+        단어를 <strong style="color:#b070e0;">숫자 벡터</strong>로 변환<br>
+        희귀 단어 = 높은 가중치<br>
+        <br>
+        <code style="font-size:0.65rem; color:#9060c0;">tfidf_rebuild.pkl</code> 로드<br>
+        입력 문장 → [0, 0.8, 0, 0.3, ...]
+      </div>
+    </div>
+
+    <div class="pipe-arrow">→</div>
+
+    <!-- Step 3: 코사인 유사도 -->
+    <div class="pipe-step">
+      <div class="pipe-num">3</div>
+      <div class="pipe-name">유사도 계산</div>
+      <div class="pipe-tech">Cosine Similarity</div>
+      <div class="pipe-desc">
+        입력 벡터 ↔ 전체 제품 행렬<br>
+        <strong style="color:#b070e0;">각도 기반</strong> 유사도 측정<br>
+        <br>
+        <code style="font-size:0.65rem; color:#9060c0;">Tfidf_skin_data_rebuild.mtx</code><br>
+        1.0 = 완벽 일치
+      </div>
+    </div>
+
+    <div class="pipe-arrow">→</div>
+
+    <!-- Step 4: 프로필 보너스 -->
+    <div class="pipe-step">
+      <div class="pipe-num">4</div>
+      <div class="pipe-name">프로필 보너스</div>
+      <div class="pipe-tech">Expert Mode</div>
+      <div class="pipe-desc">
+        피부 타입·고민 매칭 시<br>
+        <strong style="color:#b070e0;">+0.05점</strong> 추가 부여<br>
+        <br>
+        최종 점수순 정렬 →<br>
+        상위 제품 추천 반환
+      </div>
+    </div>
+
+  </div><!-- /pipeline -->
+
+  <!-- 구분선 -->
+  <div class="section-divider">
+    <div class="section-divider-label">데이터 소스 &nbsp;&amp;&nbsp; 최종 결과 출력</div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       ROW 3 : 데이터 소스 + 결과
+  ═══════════════════════════════════════════ -->
+  <div class="bottom-grid">
+
+    <!-- 데이터 소스 -->
+    <div class="data-layer">
+      <div class="data-layer-title">📂 데이터 소스</div>
+      <div class="data-files">
+        <div class="data-file">
+          <div class="data-file-name">tfidf_rebuild.pkl</div>
+          <div class="data-file-desc">학습된 TF-IDF<br>모델 (벡터라이저)</div>
+        </div>
+        <div class="data-file">
+          <div class="data-file-name">Tfidf_skin_data_rebuild.mtx</div>
+          <div class="data-file-desc">전체 제품 TF-IDF<br>행렬 (Matrix Market)</div>
+        </div>
+        <div class="data-file">
+          <div class="data-file-name">skin_data_rebuild.csv</div>
+          <div class="data-file-desc">전문가 제품 데이터<br>(성분·효과·피부타입)</div>
+        </div>
+        <div class="data-file">
+          <div class="data-file-name">oliveyoung_reviews.csv</div>
+          <div class="data-file-desc">올리브영 리뷰 기반<br>추천 데이터 (Review Mode)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 화살표 -->
+    <div class="arrow">
+      <div>→</div>
+      <span>JSON<br>응답</span>
+    </div>
+
+    <!-- 최종 결과 -->
+    <div class="result-card">
+      <div class="result-title">✅ 최종 출력 (사용자에게 반환)</div>
+      <div class="result-item">
+        <div class="result-icon">🏆</div>
+        <div class="result-text">
+          <strong>추천 제품 목록</strong>
+          제품명 · 브랜드 · 유사도 점수 · 올리브영 링크
+        </div>
+      </div>
+      <div class="result-item">
+        <div class="result-icon">🔬</div>
+        <div class="result-text">
+          <strong>분석 근거 (Analysis)</strong>
+          매칭된 질문 · 피부 프로필 일치율 · 핵심 성분
+        </div>
+      </div>
+      <div class="result-item">
+        <div class="result-icon">🛍️</div>
+        <div class="result-text">
+          <strong>연관 제품 추천</strong>
+          키워드·성분 기반 올리브영 관련 상품
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /bottom-grid -->
+
+</div><!-- /max-width wrapper -->
+
+<!-- ─── 2가지 추천 모드 비교 ─── -->
+<div style="max-width:1300px; margin:28px auto 0;">
+  <div class="section-divider">
+    <div class="section-divider-label">2가지 추천 모드</div>
+  </div>
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+
+    <div style="background:#101828; border:1.5px solid #1e4a7a; border-radius:12px; padding:18px 20px;">
+      <div style="font-size:0.72rem; font-weight:700; letter-spacing:1.5px; color:#5aa0e0; margin-bottom:10px; text-transform:uppercase;">⚗️ Expert Mode (기본)</div>
+      <div style="font-size:0.88rem; font-weight:700; color:#80c0ff; margin-bottom:8px;">전문가 제품 데이터 기반</div>
+      <div style="font-size:0.78rem; color:#6080a0; line-height:1.7;">
+        1. 사용자 질문 → Okt 형태소 분석<br>
+        2. TF-IDF 벡터화 → 코사인 유사도 계산<br>
+        3. 피부타입·고민 매칭 시 +0.05 보너스<br>
+        4. 점수 상위 1개 제품 추천
+      </div>
+    </div>
+
+    <div style="background:#101828; border:1.5px solid #4a1e7a; border-radius:12px; padding:18px 20px;">
+      <div style="font-size:0.72rem; font-weight:700; letter-spacing:1.5px; color:#a060e0; margin-bottom:10px; text-transform:uppercase;">💬 Review Mode</div>
+      <div style="font-size:0.88rem; font-weight:700; color:#c080ff; margin-bottom:8px;">올리브영 리뷰 데이터 기반</div>
+      <div style="font-size:0.78rem; color:#806090; line-height:1.7;">
+        1. 리뷰 텍스트로 학습된 TF-IDF 모델 사용<br>
+        2. 코사인 유사도 > 0 인 제품 필터링<br>
+        3. 중복 제거 후 상위 3개 제품 반환<br>
+        4. 실제 리뷰 기반 추천 (사용자 경험 반영)
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- 범례 -->
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#3d6ef5;"></div> 사용자/UI 레이어</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#3db85a;"></div> 서버 인프라</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#9d4edd;"></div> AI 추천 엔진</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#e8a020;"></div> 데이터 소스</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#e84040;"></div> 결과 출력</div>
+</div>
+
+<div style="text-align:center; margin-top:20px; font-size:0.68rem; color:#2a2a3a;">
+  SkinScope &nbsp;·&nbsp; Flask + KoNLPy(Okt) + TF-IDF + Cosine Similarity &nbsp;·&nbsp; SQLite &nbsp;·&nbsp; Gunicorn &nbsp;·&nbsp; Ubuntu 22.04 on Raspberry Pi 4 (4GB)
+</div>
+
+</body>
+</html>

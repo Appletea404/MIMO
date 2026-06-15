@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>코사인 유사도 — 추천 계산</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #fffdf0; color: #1e1a00; }
+
+  header {
+    background: linear-gradient(135deg, #5a4000, #c8900a);
+    color: white; padding: 40px 60px;
+  }
+  header .tag { font-size: 12px; letter-spacing: 3px; opacity: .7; text-transform: uppercase; margin-bottom: 8px; }
+  header h1 { font-size: 2.6rem; font-weight: 800; }
+  header p { margin-top: 10px; font-size: 1.05rem; opacity: .85; }
+
+  .container { max-width: 1100px; margin: 0 auto; padding: 40px 24px; }
+
+  .card {
+    background: white; border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,.08);
+    padding: 32px 36px; margin-bottom: 28px;
+  }
+  .card h2 {
+    font-size: 1.4rem; color: #5a4000;
+    border-left: 5px solid #c8900a;
+    padding-left: 14px; margin-bottom: 20px;
+  }
+  .card h3 { font-size: 1.05rem; color: #7a5800; margin: 18px 0 8px; }
+  p { line-height: 1.7; }
+
+  /* formula */
+  .formula {
+    background: #fffdf0; border: 2px solid #d4a017;
+    border-radius: 12px; padding: 20px 28px;
+    font-size: 1.1rem; text-align: center;
+    margin: 16px 0; color: #3d2c00;
+  }
+  .formula .label { font-size: .8rem; color: #8a6a00; margin-top: 6px; }
+
+  /* highlight */
+  .highlight {
+    background: #fffbeb; border-left: 4px solid #c8900a;
+    border-radius: 0 10px 10px 0; padding: 14px 18px;
+    margin: 14px 0; font-size: .92rem;
+  }
+  .highlight strong { color: #5a4000; }
+
+  /* code */
+  pre {
+    background: #1e1a00; color: #f5e8c0;
+    border-radius: 10px; padding: 20px 24px;
+    font-size: .88rem; line-height: 1.7;
+    overflow-x: auto; margin: 14px 0;
+  }
+  .kw { color: #f8c860; }
+  .fn { color: #ffe08a; }
+  .str { color: #f5d890; }
+  .cm { color: #7a6a30; font-style: italic; }
+  .op { color: #ff9a3c; }
+  .num { color: #f8d070; }
+
+  /* table */
+  table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: .9rem; }
+  th { background: #fff0c0; color: #5a4000; padding: 10px 14px; text-align: left; }
+  td { padding: 9px 14px; border-bottom: 1px solid #f0e8c0; }
+  tr:last-child td { border-bottom: none; }
+  tr:nth-child(even) td { background: #fffdf0; }
+
+  /* score bar */
+  .score-row { display: flex; align-items: center; gap: 12px; margin: 8px 0; }
+  .score-label { width: 160px; font-size: .88rem; font-weight: 600; color: #5a4000; }
+  .bar-wrap { flex: 1; background: #f0e8c0; border-radius: 20px; height: 22px; overflow: hidden; }
+  .bar { height: 100%; border-radius: 20px; display: flex; align-items: center; padding-left: 10px; font-size: .8rem; font-weight: 700; color: white; }
+  .bar.s1 { background: #c8900a; }
+  .bar.s2 { background: #d4a820; }
+  .bar.s3 { background: #e8c840; color: #5a4000; }
+  .score-val { width: 50px; text-align: right; font-weight: 700; color: #5a4000; font-size: .9rem; }
+
+  /* angle diagram */
+  .angle-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin: 16px 0; }
+  .angle-box {
+    border: 2px solid #d4a017; border-radius: 12px;
+    padding: 18px; text-align: center; background: #fffdf0;
+  }
+  .angle-box .big { font-size: 1.8rem; font-weight: 800; color: #5a4000; }
+  .angle-box .sub { font-size: .85rem; color: #8a6a00; margin-top: 4px; }
+  .angle-box .score { font-size: 1.3rem; font-weight: 700; color: #c8900a; margin-top: 8px; }
+
+  /* pipeline */
+  .pipeline { display: flex; align-items: center; gap: 0; flex-wrap: wrap; margin: 20px 0; }
+  .pipe-step {
+    background: #fff0c0; border: 2px solid #d4a017;
+    border-radius: 10px; padding: 12px 18px;
+    font-size: .9rem; font-weight: 600; color: #5a4000;
+    text-align: center; min-width: 130px;
+  }
+  .pipe-arrow { font-size: 1.6rem; color: #d4a017; padding: 0 6px; }
+
+  /* compare grid */
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 14px 0; }
+  .box { border-radius: 10px; padding: 16px 20px; border: 2px solid #d4a017; }
+  .box.mode-e { border-color: #3a6cbf; background: #f0f4ff; }
+  .box.mode-r { border-color: #b85450; background: #fff4f4; }
+  .box h4 { margin-bottom: 10px; font-size: .95rem; }
+  .box.mode-e h4 { color: #1a3a6c; }
+  .box.mode-r h4 { color: #6a1000; }
+
+  .badge { display: inline-block; background: #c8900a; color: white; border-radius: 20px; padding: 3px 12px; font-size: .78rem; margin-right: 6px; }
+  .badge.blue { background: #3a6cbf; }
+  .badge.red { background: #b85450; }
+  .badge.green { background: #4a8a4a; }
+
+  footer { text-align: center; padding: 30px; color: #888; font-size: .85rem; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="tag">③ AI 추천 파이프라인 — Step 3</div>
+  <h1>📐 코사인 유사도</h1>
+  <p>Cosine Similarity · 벡터 간 방향 유사도 · Expert Mode / Review Mode 추천 계산</p>
+</header>
+
+<div class="container">
+
+  <!-- 개요 -->
+  <div class="card">
+    <h2>코사인 유사도란?</h2>
+    <p>
+      두 벡터 사이의 <strong>각도(cosine)</strong>를 이용해 유사도를 측정하는 기법입니다.
+      벡터의 <em>크기</em>(단어 빈도의 절대값)가 아닌 <em>방향</em>(어떤 단어를 쓰는지의 패턴)을 비교하기 때문에,
+      문서 길이가 달라도 안정적으로 유사도를 계산할 수 있습니다.
+    </p>
+    <br>
+    <p>
+      본 시스템에서는 <strong>사용자 쿼리 벡터</strong>와 <strong>상담 질문 또는 리뷰 벡터</strong> 사이의
+      코사인 유사도를 계산합니다. Expert Mode는 가장 관련성 높은 상담 행 1개를 고르고, Review Mode는 관련 제품 리뷰를 최대 3개까지 순위화합니다.
+    </p>
+    <div class="highlight">
+      <strong>핵심 역할:</strong> TF-IDF 벡터 → 코사인 유사도 점수 → Expert 1위 상담 선택 / Review 상위 3개 제품 추천
+    </div>
+  </div>
+
+  <!-- 수식 -->
+  <div class="card">
+    <h2>수식</h2>
+    <div class="formula">
+      cos(θ) = (A · B) / (‖A‖ × ‖B‖)
+      <div class="label">A · B = 두 벡터의 내적 · ‖A‖, ‖B‖ = 각 벡터의 크기(L2 norm)</div>
+    </div>
+    <div class="formula" style="font-size:1.2rem; font-weight:700;">
+      유사도 범위: 0.0 (전혀 다름) ← → 1.0 (완전히 동일)
+      <div class="label" style="font-weight:400;">TF-IDF 벡터는 항상 양수 → 값 범위 [0, 1]</div>
+    </div>
+
+    <h3>각도와 유사도</h3>
+    <div class="angle-grid">
+      <div class="angle-box">
+        <div class="big">θ ≈ 0°</div>
+        <div class="sub">거의 동일한 방향</div>
+        <div class="score">score ≈ 1.0</div>
+        <div class="sub" style="margin-top:6px;">→ 매우 유사한 상담/리뷰</div>
+      </div>
+      <div class="angle-box">
+        <div class="big">θ ≈ 45°</div>
+        <div class="sub">부분적으로 겹침</div>
+        <div class="score">score ≈ 0.7</div>
+        <div class="sub" style="margin-top:6px;">→ 관련 있는 상담/리뷰</div>
+      </div>
+      <div class="angle-box">
+        <div class="big">θ = 90°</div>
+        <div class="sub">수직 (공통 단어 없음)</div>
+        <div class="score">score = 0.0</div>
+        <div class="sub" style="margin-top:6px;">→ 관련 없는 상담/리뷰</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 실제 코드 -->
+  <div class="card">
+    <h2>실제 구현 코드 (web_app.py)</h2>
+    <pre><span class="kw">from</span> sklearn.metrics.pairwise <span class="kw">import</span> linear_kernel
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+
+<span class="cm"># ── Expert Mode ─────────────────────────────────────────────────</span>
+cleaned <span class="op">=</span> preprocess_input(user_input)
+similarities <span class="op">=</span> linear_kernel(tfidf.transform([cleaned]), tfidf_matrix)[<span class="op">0</span>]
+
+<span class="cm"># 프로필 보너스 (+0.05 × 일치 항목 수)</span>
+profile_bonus <span class="op">=</span> np.zeros(len(df_skin))
+<span class="kw">if</span> gender <span class="op">!=</span> <span class="str">'성별 선택'</span>:
+    profile_bonus <span class="op">+=</span> df_skin[<span class="str">'Gender'</span>].eq(gender).to_numpy() <span class="op">*</span> <span class="num">0.05</span>
+<span class="kw">if</span> age <span class="op">!=</span> <span class="str">'연령대 선택'</span>:
+    profile_bonus <span class="op">+=</span> df_skin[<span class="str">'Age'</span>].eq(age).to_numpy() <span class="op">*</span> <span class="num">0.05</span>
+<span class="kw">if</span> skin_type <span class="op">!=</span> <span class="str">'피부 타입 선택'</span>:
+    profile_bonus <span class="op">+=</span> df_skin[<span class="str">'Skin Type'</span>].eq(skin_type).to_numpy() <span class="op">*</span> <span class="num">0.05</span>
+
+final_scores <span class="op">=</span> similarities <span class="op">+</span> profile_bonus
+selected_index <span class="op">=</span> int(final_scores.argmax())        <span class="cm"># 최종 1위 상담 행</span>
+selected_row <span class="op">=</span> df_skin.iloc[selected_index]
+
+<span class="cm"># ── Review Mode ─────────────────────────────────────────────────</span>
+similarities <span class="op">=</span> linear_kernel(
+    tfidf_reviews.transform([cleaned]),
+    tfidf_matrix_reviews,
+)[<span class="op">0</span>]
+ranked_indices <span class="op">=</span> similarities.argsort()[::<span class="op">-</span><span class="num">1</span>]
+<span class="cm"># score > 0 인 것만, product_name 중복 제거, 상위 3개</span></pre>
+
+    <div class="highlight">
+      <code>linear_kernel()</code>은 이미 정규화(L2 norm)된 TF-IDF 벡터에 대해 내적만 계산하여
+      코사인 유사도와 동일한 결과를 <strong>더 빠르게</strong> 반환합니다.
+    </div>
+  </div>
+
+  <!-- 점수 예시 -->
+  <div class="card">
+    <h2>유사도 점수 예시</h2>
+    <p>입력: <strong>"건성 피부 수분크림"</strong> → 각 상담/리뷰 후보별 코사인 유사도 점수</p>
+
+    <div style="margin: 20px 0;">
+      <div class="score-row">
+        <div class="score-label">① A 보습 상담</div>
+        <div class="bar-wrap"><div class="bar s1" style="width:87%;">0.87</div></div>
+        <div class="score-val">0.87</div>
+      </div>
+      <div class="score-row">
+        <div class="score-label">② B 보습 리뷰</div>
+        <div class="bar-wrap"><div class="bar s2" style="width:72%;">0.72</div></div>
+        <div class="score-val">0.72</div>
+      </div>
+      <div class="score-row">
+        <div class="score-label">③ C 로션 리뷰</div>
+        <div class="bar-wrap"><div class="bar s3" style="width:51%;">0.51</div></div>
+        <div class="score-val">0.51</div>
+      </div>
+      <div class="score-row">
+        <div class="score-label">D 자외선 상담</div>
+        <div class="bar-wrap"><div class="bar" style="width:8%; background:#ddd; color:#888;">0.08</div></div>
+        <div class="score-val" style="color:#aaa;">0.08</div>
+      </div>
+      <div class="score-row">
+        <div class="score-label">E 클렌저 리뷰</div>
+        <div class="bar-wrap"><div class="bar" style="width:1%; background:#eee;"></div></div>
+        <div class="score-val" style="color:#ccc;">0.00</div>
+      </div>
+    </div>
+
+    <div class="highlight">
+      → Expert Mode는 최종 점수 1위 상담 행을 반환하고, Review Mode는 상위 제품 리뷰 3개를 반환
+    </div>
+  </div>
+
+  <!-- Expert vs Review -->
+  <div class="card">
+    <h2>Expert Mode vs Review Mode — 코사인 유사도 적용 방식</h2>
+    <div class="grid2">
+      <div class="box mode-e">
+        <h4>🔬 Expert Mode <span class="badge blue">전문가 상담 데이터 기반</span></h4>
+        <table>
+          <tr><th>항목</th><th>내용</th></tr>
+          <tr><td>벡터 소스</td><td>전문가 상담 질문의 cleaned_question (skin_data_final.csv)</td></tr>
+          <tr><td>벡터라이저</td><td><code>tfidf_rebuild.pkl</code></td></tr>
+          <tr><td>행렬</td><td><code>Tfidf_skin_data_rebuild.mtx</code></td></tr>
+          <tr><td>보너스</td><td>성별·연령·피부타입 일치 시 각 +0.05</td></tr>
+          <tr><td>결과</td><td>최대 +0.15 가산 후 최종 1위 상담 행 1개</td></tr>
+        </table>
+      </div>
+      <div class="box mode-r">
+        <h4>⭐ Review Mode <span class="badge red">리뷰 기반</span></h4>
+        <table>
+          <tr><th>항목</th><th>내용</th></tr>
+          <tr><td>벡터 소스</td><td>실제 사용자 리뷰 텍스트 (oliveyoung_reviews_preprocessed.csv)</td></tr>
+          <tr><td>벡터라이저</td><td><code>tfidf_reviews.pkl</code></td></tr>
+          <tr><td>행렬</td><td>리뷰 TF-IDF 행렬 (메모리 로드)</td></tr>
+          <tr><td>보너스</td><td>없음 (순수 텍스트 유사도)</td></tr>
+          <tr><td>결과</td><td>score &gt; 0, 제품명 중복 제거, 상위 3개</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 프로필 보너스 -->
+  <div class="card">
+    <h2>Expert Mode 프로필 보너스</h2>
+    <p>
+      코사인 유사도 점수에 사용자 프로필(성별·연령대·피부타입) 일치 여부에 따라 보너스를 더합니다.
+      텍스트 유사도가 비슷할 때 사용자 특성에 맞는 상담 사례가 우선 선택되도록 합니다.
+    </p>
+    <table>
+      <tr><th>조건</th><th>보너스</th><th>최대 누적</th></tr>
+      <tr><td>성별 일치 (Gender)</td><td>+0.05</td><td rowspan="3" style="text-align:center; font-weight:700; font-size:1.1rem; vertical-align:middle;">+0.15</td></tr>
+      <tr><td>연령대 일치 (Age)</td><td>+0.05</td></tr>
+      <tr><td>피부타입 일치 (Skin Type)</td><td>+0.05</td></tr>
+    </table>
+    <pre><span class="cm"># 예시: 20대 여성, 건성 피부 입력 시</span>
+<span class="cm"># A 상담 사례: 여성 ✓, 20대 ✓, 건성 ✓ → +0.15</span>
+<span class="cm"># B 상담 사례: 성별 불일치, 연령 불일치, 건성 ✓ → +0.05</span>
+final_A <span class="op">=</span> <span class="num">0.87</span> <span class="op">+</span> <span class="num">0.15</span>  <span class="cm"># = 1.02</span>
+final_B <span class="op">=</span> <span class="num">0.84</span> <span class="op">+</span> <span class="num">0.05</span>  <span class="cm"># = 0.89</span>
+<span class="cm"># 코사인 유사도는 비슷하지만 A가 최종 1위</span></pre>
+  </div>
+
+  <!-- 전체 파이프라인 -->
+  <div class="card">
+    <h2>전체 AI 추천 파이프라인 요약</h2>
+    <div class="pipeline">
+      <div class="pipe-step">① KoNLPy Okt<br><small>형태소 분석</small></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step">② TF-IDF<br><small>벡터 변환</small></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step">③ 코사인 유사도<br><small>유사도 계산</small></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step">④ 프로필 보너스<br><small>+0.05 × 3</small></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step">⑤ 결과 선택<br><small>Expert 1개 / Review 3개</small></div>
+    </div>
+    <table>
+      <tr><th>단계</th><th>기술</th><th>입력</th><th>출력</th></tr>
+      <tr>
+        <td><span class="badge blue">Step 1</span></td>
+        <td>KoNLPy Okt</td>
+        <td>사용자 입력 문장</td>
+        <td>의미 단어 문자열</td>
+      </tr>
+      <tr>
+        <td><span class="badge green">Step 2</span></td>
+        <td>TF-IDF</td>
+        <td>의미 단어 문자열</td>
+        <td>쿼리 벡터 (1 × n)</td>
+      </tr>
+      <tr>
+        <td><span class="badge">Step 3</span></td>
+        <td>코사인 유사도</td>
+        <td>쿼리 벡터 + 상담/리뷰 행렬</td>
+        <td>유사도 점수 배열</td>
+      </tr>
+      <tr>
+        <td><span class="badge">Step 4</span></td>
+        <td>프로필 보너스</td>
+        <td>유사도 점수 + 사용자 프로필</td>
+        <td>최종 점수 배열</td>
+      </tr>
+      <tr>
+        <td><span class="badge">Step 5</span></td>
+        <td>정렬·필터</td>
+        <td>최종 점수 배열</td>
+        <td>Expert 상담 1개 또는 Review 제품 3개</td>
+      </tr>
+    </table>
+  </div>
+
+</div>
+<footer>MIMO · 코사인 유사도 · sklearn linear_kernel · web_app.py select_expert_row() / recommend_by_review()</footer>
+</body>
+</html>

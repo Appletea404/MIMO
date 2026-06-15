@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>KoNLPy Okt — 한국어 형태소 분석</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f4ff; color: #1a1a2e; }
+
+  header {
+    background: linear-gradient(135deg, #1a3a6c, #3a6cbf);
+    color: white; padding: 40px 60px;
+  }
+  header .tag { font-size: 12px; letter-spacing: 3px; opacity: .7; text-transform: uppercase; margin-bottom: 8px; }
+  header h1 { font-size: 2.6rem; font-weight: 800; }
+  header p { margin-top: 10px; font-size: 1.05rem; opacity: .85; }
+
+  .container { max-width: 1100px; margin: 0 auto; padding: 40px 24px; }
+
+  .card {
+    background: white; border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,.08);
+    padding: 32px 36px; margin-bottom: 28px;
+  }
+  .card h2 {
+    font-size: 1.4rem; color: #1a3a6c;
+    border-left: 5px solid #3a6cbf;
+    padding-left: 14px; margin-bottom: 20px;
+  }
+  .card h3 { font-size: 1.05rem; color: #2a4a8c; margin: 18px 0 8px; }
+
+  /* pipeline */
+  .pipeline { display: flex; align-items: center; gap: 0; flex-wrap: wrap; margin: 20px 0; }
+  .pipe-step {
+    background: #dae8fc; border: 2px solid #6c8ebf;
+    border-radius: 10px; padding: 12px 18px;
+    font-size: .9rem; font-weight: 600; color: #1a3a6c;
+    text-align: center; min-width: 130px;
+  }
+  .pipe-arrow { font-size: 1.6rem; color: #6c8ebf; padding: 0 6px; }
+
+  /* tokens */
+  .token-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+  .token {
+    display: inline-flex; flex-direction: column; align-items: center;
+    background: #eef3ff; border: 1.5px solid #9ab5e8;
+    border-radius: 8px; padding: 6px 12px; font-size: .85rem;
+  }
+  .token .word { font-weight: 700; color: #1a3a6c; }
+  .token .pos { font-size: .72rem; color: #6c8ebf; margin-top: 2px; }
+  .token.keep { background: #d5e8d4; border-color: #82b366; }
+  .token.keep .word { color: #1a3a1a; }
+  .token.keep .pos { color: #4a8a4a; }
+  .token.drop { background: #f8cecc; border-color: #b85450; opacity: .6; }
+  .token.drop .word { color: #6a0000; text-decoration: line-through; }
+  .token.drop .pos { color: #b85450; }
+
+  /* code */
+  pre {
+    background: #1e2a3a; color: #e8edf5;
+    border-radius: 10px; padding: 20px 24px;
+    font-size: .88rem; line-height: 1.7;
+    overflow-x: auto; margin: 14px 0;
+  }
+  .kw { color: #79b8ff; }
+  .fn { color: #b8e0ff; }
+  .str { color: #9ecbff; }
+  .cm { color: #6a7f96; font-style: italic; }
+  .op { color: #f97583; }
+
+  /* table */
+  table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: .9rem; }
+  th { background: #dae8fc; color: #1a3a6c; padding: 10px 14px; text-align: left; }
+  td { padding: 9px 14px; border-bottom: 1px solid #e8edf5; }
+  tr:last-child td { border-bottom: none; }
+  tr:nth-child(even) td { background: #f7f9ff; }
+
+  /* highlight box */
+  .highlight {
+    background: #eef3ff; border-left: 4px solid #3a6cbf;
+    border-radius: 0 10px 10px 0; padding: 14px 18px;
+    margin: 14px 0; font-size: .92rem;
+  }
+  .highlight strong { color: #1a3a6c; }
+
+  .badge {
+    display: inline-block; background: #3a6cbf; color: white;
+    border-radius: 20px; padding: 3px 12px; font-size: .78rem; margin-right: 6px;
+  }
+  .badge.green { background: #4a8a4a; }
+  .badge.red { background: #b85450; }
+
+  footer { text-align: center; padding: 30px; color: #888; font-size: .85rem; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="tag">① AI 추천 파이프라인 — Step 1</div>
+  <h1>🔤 KoNLPy Okt</h1>
+  <p>한국어 자연어 처리 · 형태소 분석 · 품사 태깅 · 불용어 제거</p>
+</header>
+
+<div class="container">
+
+  <!-- 개요 -->
+  <div class="card">
+    <h2>KoNLPy란?</h2>
+    <p>
+      <strong>KoNLPy</strong>(Korean Natural Language Processing in Python)는 파이썬에서 한국어 형태소 분석을 수행하는 오픈소스 라이브러리입니다.
+      내부적으로 여러 분석기를 지원하며, 본 시스템에서는 <strong>Okt(Open Korean Text)</strong> 분석기를 사용합니다.
+    </p>
+    <br>
+    <p>
+      사용자가 입력한 자유형식의 한국어 문장을 <strong>의미 있는 단어 단위로 분해</strong>하여,
+      이후 TF-IDF 벡터화에 적합한 형태로 전처리하는 역할을 담당합니다.
+    </p>
+    <div class="highlight">
+      <strong>핵심 역할:</strong> "건성 피부에 좋은 수분크림 추천해줘" →  의미 단어 토큰 추출 →
+      TF-IDF 입력 텍스트 생성
+    </div>
+  </div>
+
+  <!-- 처리 파이프라인 -->
+  <div class="card">
+    <h2>처리 파이프라인</h2>
+    <div class="pipeline">
+      <div class="pipe-step">① 한글만 추출<br><small>정규식 필터</small></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step">② 품사 태깅<br><small>okt.pos(stem=True)</small></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step">③ 품사 필터<br><small>명사·동사·형용사</small></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step">④ 불용어 제거<br><small>stopwords.csv</small></div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step">⑤ 토큰 결합<br><small>공백으로 join</small></div>
+    </div>
+  </div>
+
+  <!-- 실제 코드 -->
+  <div class="card">
+    <h2>실제 구현 코드 (web_app.py)</h2>
+    <pre><span class="kw">from</span> konlpy.tag <span class="kw">import</span> Okt
+<span class="kw">import</span> re
+
+okt <span class="op">=</span> Okt()
+
+<span class="cm"># stopwords.csv 로드</span>
+df_stopwords <span class="op">=</span> pd.read_csv(<span class="str">'datasets/stopwords.csv'</span>)
+stopwords <span class="op">=</span> df_stopwords[<span class="str">'stopword'</span>].tolist()
+
+<span class="kw">def</span> <span class="fn">preprocess_input</span>(text):
+    <span class="cm"># ① 한글 이외 문자 제거</span>
+    text <span class="op">=</span> re.sub(<span class="str">'[^가-힣]'</span>, <span class="str">' '</span>, text)
+
+    <span class="cm"># ② 품사 태깅 (stem=True: 어간 추출)</span>
+    tokens <span class="op">=</span> okt.pos(text, stem<span class="op">=</span><span class="kw">True</span>)
+
+    <span class="cm"># ③ 명사·동사·형용사 필터링 + 불용어 제거</span>
+    words <span class="op">=</span> [word <span class="kw">for</span> word, part <span class="kw">in</span> tokens
+             <span class="kw">if</span> part <span class="kw">in</span> [<span class="str">'Noun'</span>, <span class="str">'Verb'</span>, <span class="str">'Adjective'</span>]
+             <span class="kw">and</span> len(word) <span class="op">></span> <span class="num">1</span>
+             <span class="kw">and</span> word <span class="kw">not in</span> stopwords]
+
+    <span class="kw">return</span> <span class="str">' '</span>.join(words)  <span class="cm"># TF-IDF 입력용 문자열</span></pre>
+  </div>
+
+  <!-- 예시 -->
+  <div class="card">
+    <h2>처리 예시</h2>
+    <h3>입력 문장</h3>
+    <div class="highlight">
+      <strong>"건성 피부에 좋은 수분크림 추천해줘, 향도 별로 없으면 좋겠어"</strong>
+    </div>
+
+    <h3>① 한글만 추출</h3>
+    <div class="highlight">건성 피부에 좋은 수분크림 추천해줘 향도 별로 없으면 좋겠어</div>
+
+    <h3>② 품사 태깅 결과 (stem=True)</h3>
+    <div class="token-row">
+      <div class="token keep"><span class="word">건성</span><span class="pos">Noun ✓</span></div>
+      <div class="token keep"><span class="word">피부</span><span class="pos">Noun ✓</span></div>
+      <div class="token drop"><span class="word">에</span><span class="pos">Josa ✗</span></div>
+      <div class="token keep"><span class="word">좋다</span><span class="pos">Adjective ✓</span></div>
+      <div class="token keep"><span class="word">수분크림</span><span class="pos">Noun ✓</span></div>
+      <div class="token keep"><span class="word">추천</span><span class="pos">Noun ✓</span></div>
+      <div class="token keep"><span class="word">해주다</span><span class="pos">Verb ✓</span></div>
+      <div class="token drop"><span class="word">향</span><span class="pos">Noun·길이 1 ✗</span></div>
+      <div class="token drop"><span class="word">도</span><span class="pos">Josa ✗</span></div>
+      <div class="token keep"><span class="word">별로</span><span class="pos">Noun ✓</span></div>
+      <div class="token drop"><span class="word">없다</span><span class="pos">Adjective·stopword ✗</span></div>
+      <div class="token keep"><span class="word">좋다</span><span class="pos">Adjective ✓</span></div>
+    </div>
+
+    <h3>③ 최종 출력 (TF-IDF 입력)</h3>
+    <div class="highlight">
+      <strong>"건성 피부 좋다 수분크림 추천 해주다 별로 좋다"</strong>
+    </div>
+  </div>
+
+  <!-- 품사 테이블 -->
+  <div class="card">
+    <h2>품사(POS) 태그 설명</h2>
+    <table>
+      <tr><th>태그</th><th>의미</th><th>예시</th><th>사용 여부</th></tr>
+      <tr><td>Noun</td><td>명사</td><td>피부, 크림, 수분</td><td><span class="badge green">✓ 사용</span></td></tr>
+      <tr><td>Verb</td><td>동사</td><td>추천하다, 사용하다</td><td><span class="badge green">✓ 사용</span></td></tr>
+      <tr><td>Adjective</td><td>형용사</td><td>좋다, 촉촉하다, 건조하다</td><td><span class="badge green">✓ 사용</span></td></tr>
+      <tr><td>Josa</td><td>조사</td><td>은/는/이/가/에/를</td><td><span class="badge red">✗ 제거</span></td></tr>
+      <tr><td>Adverb</td><td>부사</td><td>매우, 정말</td><td><span class="badge red">✗ 제거</span></td></tr>
+      <tr><td>Eomi</td><td>어미</td><td>~했어, ~해줘</td><td><span class="badge red">✗ 제거</span></td></tr>
+      <tr><td>Punctuation</td><td>구두점</td><td>., !, ?</td><td><span class="badge red">✗ 제거</span></td></tr>
+    </table>
+  </div>
+
+  <!-- stem=True -->
+  <div class="card">
+    <h2>stem=True — 어간 추출</h2>
+    <p>
+      <code>stem=True</code> 옵션을 사용하면 단어를 <strong>기본형(어간)</strong>으로 변환합니다.
+      같은 의미의 활용형들이 동일한 토큰으로 처리되어 매칭 정확도가 높아집니다.
+    </p>
+    <table>
+      <tr><th>원문</th><th>stem=False</th><th>stem=True (적용)</th></tr>
+      <tr><td>촉촉해요</td><td>촉촉해요</td><td>촉촉하다</td></tr>
+      <tr><td>건조했어요</td><td>건조했어요</td><td>건조하다</td></tr>
+      <tr><td>추천합니다</td><td>추천합니다</td><td>추천하다</td></tr>
+      <tr><td>발라줬어요</td><td>발라줬어요</td><td>바르다</td></tr>
+    </table>
+    <div class="highlight">
+      → "촉촉해요", "촉촉했어요", "촉촉하다" 모두 <strong>"촉촉하다"</strong>로 통일되어 유사도 향상
+    </div>
+  </div>
+
+  <!-- 의의 -->
+  <div class="card">
+    <h2>스킨케어 추천에서의 역할</h2>
+    <table>
+      <tr><th>항목</th><th>내용</th></tr>
+      <tr><td>입력</td><td>사용자가 자유롭게 입력한 피부 고민 텍스트</td></tr>
+      <tr><td>출력</td><td>TF-IDF 벡터화에 쓸 의미 단어 문자열</td></tr>
+      <tr><td>효과</td><td>노이즈(조사·부사·구두점) 제거로 핵심 의미만 추출</td></tr>
+      <tr><td>핵심 단어</td><td>건성, 수분, 크림, 민감, 트러블, 미백, 자외선 등 스킨케어 명사 보존</td></tr>
+    </table>
+  </div>
+
+</div>
+<footer>MIMO · KoNLPy Okt 형태소 분석 · web_app.py preprocess_input()</footer>
+</body>
+</html>

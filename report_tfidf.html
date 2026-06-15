@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>TF-IDF — 벡터화</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0fff4; color: #1a2e1a; }
+
+  header {
+    background: linear-gradient(135deg, #1a4a1a, #3a8a3a);
+    color: white; padding: 40px 60px;
+  }
+  header .tag { font-size: 12px; letter-spacing: 3px; opacity: .7; text-transform: uppercase; margin-bottom: 8px; }
+  header h1 { font-size: 2.6rem; font-weight: 800; }
+  header p { margin-top: 10px; font-size: 1.05rem; opacity: .85; }
+
+  .container { max-width: 1100px; margin: 0 auto; padding: 40px 24px; }
+
+  .card {
+    background: white; border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,.08);
+    padding: 32px 36px; margin-bottom: 28px;
+  }
+  .card h2 {
+    font-size: 1.4rem; color: #1a4a1a;
+    border-left: 5px solid #3a8a3a;
+    padding-left: 14px; margin-bottom: 20px;
+  }
+  .card h3 { font-size: 1.05rem; color: #2a6a2a; margin: 18px 0 8px; }
+  p { line-height: 1.7; }
+
+  /* formula */
+  .formula {
+    background: #f0fff4; border: 2px solid #82b366;
+    border-radius: 12px; padding: 20px 28px;
+    font-size: 1.1rem; text-align: center;
+    margin: 16px 0; color: #1a4a1a;
+  }
+  .formula .label { font-size: .8rem; color: #4a8a4a; margin-top: 6px; }
+
+  /* matrix */
+  .matrix-wrap { overflow-x: auto; margin: 16px 0; }
+  table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+  th { background: #d5e8d4; color: #1a4a1a; padding: 9px 14px; text-align: center; }
+  td { padding: 8px 14px; border: 1px solid #c8e0c8; text-align: center; }
+  td.row-lbl { background: #d5e8d4; font-weight: 600; color: #1a4a1a; text-align: left; }
+  td.high { background: #a8d8a8; font-weight: 700; color: #1a4a1a; }
+  td.med { background: #c8e8c8; color: #2a5a2a; }
+  td.low { background: #f0fff4; color: #6a9a6a; }
+  td.zero { color: #ccc; }
+
+  /* pipeline */
+  .pipeline { display: flex; align-items: center; gap: 0; flex-wrap: wrap; margin: 20px 0; }
+  .pipe-step {
+    background: #d5e8d4; border: 2px solid #82b366;
+    border-radius: 10px; padding: 12px 18px;
+    font-size: .9rem; font-weight: 600; color: #1a4a1a;
+    text-align: center; min-width: 130px;
+  }
+  .pipe-arrow { font-size: 1.6rem; color: #82b366; padding: 0 6px; }
+
+  /* code */
+  pre {
+    background: #1e2a1e; color: #e8f5e8;
+    border-radius: 10px; padding: 20px 24px;
+    font-size: .88rem; line-height: 1.7;
+    overflow-x: auto; margin: 14px 0;
+  }
+  .kw { color: #88d888; }
+  .fn { color: #a8e8a8; }
+  .str { color: #c8f8c8; }
+  .cm { color: #5a7a5a; font-style: italic; }
+  .op { color: #f8a858; }
+
+  /* highlight */
+  .highlight {
+    background: #efffef; border-left: 4px solid #3a8a3a;
+    border-radius: 0 10px 10px 0; padding: 14px 18px;
+    margin: 14px 0; font-size: .92rem;
+  }
+  .highlight strong { color: #1a4a1a; }
+
+  /* compare grid */
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 14px 0; }
+  .box {
+    border-radius: 10px; padding: 16px 20px;
+    border: 2px solid #82b366;
+  }
+  .box.bad { border-color: #b85450; background: #fff4f4; }
+  .box.good { border-color: #82b366; background: #f0fff4; }
+  .box h4 { margin-bottom: 8px; font-size: .95rem; }
+  .box.bad h4 { color: #8B0000; }
+  .box.good h4 { color: #1a4a1a; }
+
+  .badge { display: inline-block; background: #3a8a3a; color: white; border-radius: 20px; padding: 3px 12px; font-size: .78rem; margin-right: 6px; }
+  .badge.red { background: #b85450; }
+
+  footer { text-align: center; padding: 30px; color: #888; font-size: .85rem; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="tag">② AI 추천 파이프라인 — Step 2</div>
+  <h1>📊 TF-IDF</h1>
+  <p>Term Frequency-Inverse Document Frequency · 텍스트 벡터화 · 단어 중요도 가중치</p>
+</header>
+
+<div class="container">
+
+  <!-- 개요 -->
+  <div class="card">
+    <h2>TF-IDF란?</h2>
+    <p>
+      <strong>TF-IDF</strong>(Term Frequency-Inverse Document Frequency)는 문서 내 단어의 중요도를 수치화하는 기법입니다.
+      단순 단어 빈도(TF)에 문서 전체에서의 희소성(IDF)을 곱하여 <strong>"이 문서에서만 자주 등장하는 핵심 단어"</strong>에 높은 가중치를 부여합니다.
+    </p>
+    <br>
+    <p>
+      본 시스템에서는 사용자 입력 쿼리와 전문가 상담 데이터의 각 질문을 TF-IDF 벡터로 변환하여,
+      이후 코사인 유사도 계산의 입력값으로 사용합니다.
+    </p>
+    <div class="highlight">
+      <strong>핵심 역할:</strong> 전처리된 텍스트 → 수치 벡터 → 코사인 유사도 계산 가능한 형태
+    </div>
+  </div>
+
+  <!-- 수식 -->
+  <div class="card">
+    <h2>수식</h2>
+
+    <h3>TF (Term Frequency) — 단어 빈도</h3>
+    <div class="formula">
+      sublinear_tf(t, d) = 1 + log(tf(t, d))
+      <div class="label">현재 모델은 TfidfVectorizer(sublinear_tf=True)를 사용합니다.</div>
+    </div>
+
+    <h3>IDF (Inverse Document Frequency) — 역문서 빈도</h3>
+    <div class="formula">
+      IDF(t) = log ((1 + N) / (1 + df(t))) + 1
+      <div class="label">sklearn 기본 smooth_idf=True 기준 · N = 전체 문서 수 · df(t) = 단어 t가 등장하는 문서 수</div>
+    </div>
+
+    <h3>TF-IDF 최종 가중치</h3>
+    <div class="formula" style="font-size:1.25rem; font-weight:700;">
+      TF-IDF(t, d) = sublinear_tf(t, d) × IDF(t), 이후 L2 정규화
+      <div class="label" style="font-size:.85rem; font-weight:400;">→ 해당 문서에서 의미 있게 등장하고, 다른 문서에서는 덜 흔할수록 높은 값</div>
+    </div>
+  </div>
+
+  <!-- 벡터화 흐름 -->
+  <div class="card">
+    <h2>벡터화 흐름</h2>
+    <div class="pipeline">
+      <div class="pipe-step">Okt 전처리<br>텍스트</div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step">fit_transform<br>학습 데이터</div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step">TF-IDF 행렬<br>.mtx 파일</div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step">쿼리 transform<br>사용자 입력</div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step">쿼리 벡터<br>1 × n_features</div>
+    </div>
+    <div class="highlight">
+      <strong>학습(fit)</strong>은 미리 완료 → <code>tfidf_rebuild.pkl</code>에 저장<br>
+      <strong>추론(transform)</strong>만 실시간 실행 → 응답 속도 빠름
+    </div>
+  </div>
+
+  <!-- 실제 코드 -->
+  <div class="card">
+    <h2>실제 구현 코드 (web_app.py)</h2>
+    <pre><span class="kw">import</span> pickle
+<span class="kw">from</span> scipy.io <span class="kw">import</span> mmread
+<span class="kw">from</span> sklearn.metrics.pairwise <span class="kw">import</span> linear_kernel
+
+<span class="cm"># 서버 시작 시 1회 로드</span>
+tfidf_matrix <span class="op">=</span> mmread(<span class="str">'models/Tfidf_skin_data_rebuild.mtx'</span>).tocsr()
+<span class="kw">with</span> open(<span class="str">'models/tfidf_rebuild.pkl'</span>, <span class="str">'rb'</span>) <span class="kw">as</span> f:
+    tfidf <span class="op">=</span> pickle.load(f)   <span class="cm"># TfidfVectorizer 객체</span>
+
+<span class="cm"># 추천 요청 시마다 실행</span>
+cleaned <span class="op">=</span> preprocess_input(user_input)          <span class="cm"># Okt 전처리</span>
+query_vec <span class="op">=</span> tfidf.transform([cleaned])           <span class="cm"># 쿼리 벡터화 (1×n)</span>
+similarities <span class="op">=</span> linear_kernel(query_vec, tfidf_matrix)[<span class="op">0</span>]  <span class="cm"># 코사인 유사도</span></pre>
+
+    <h3>파일 역할</h3>
+    <table>
+      <tr><th>파일</th><th>내용</th><th>크기</th></tr>
+      <tr><td><code>tfidf_rebuild.pkl</code></td><td>학습된 TfidfVectorizer 객체 (단어 사전 포함)</td><td>약 53KB</td></tr>
+      <tr><td><code>Tfidf_skin_data_rebuild.mtx</code></td><td>전체 상담 질문 TF-IDF 행렬 (Matrix Market 희소 형식)</td><td>9031 × 2473, 약 14MB</td></tr>
+    </table>
+  </div>
+
+  <!-- 벡터 예시 -->
+  <div class="card">
+    <h2>TF-IDF 벡터 예시</h2>
+    <p>아래는 일부 단어에 대한 TF-IDF 가중치 예시입니다. (실제 어휘 수는 수천 개)</p>
+    <div class="matrix-wrap">
+      <table>
+        <tr>
+          <th>상담/쿼리</th>
+          <th>건성</th><th>수분</th><th>크림</th><th>민감</th><th>트러블</th><th>자외선</th><th>미백</th>
+        </tr>
+        <tr>
+          <td class="row-lbl">A 보습 상담</td>
+          <td class="high">0.52</td><td class="high">0.61</td><td class="high">0.48</td>
+          <td class="low">0.08</td><td class="zero">0.00</td><td class="zero">0.00</td><td class="low">0.05</td>
+        </tr>
+        <tr>
+          <td class="row-lbl">B 자외선 상담</td>
+          <td class="zero">0.00</td><td class="low">0.12</td><td class="zero">0.00</td>
+          <td class="low">0.09</td><td class="zero">0.00</td><td class="high">0.71</td><td class="med">0.33</td>
+        </tr>
+        <tr>
+          <td class="row-lbl">C 트러블 상담</td>
+          <td class="zero">0.00</td><td class="low">0.07</td><td class="zero">0.00</td>
+          <td class="high">0.58</td><td class="high">0.64</td><td class="zero">0.00</td><td class="zero">0.00</td>
+        </tr>
+        <tr style="border-top: 3px solid #82b366;">
+          <td class="row-lbl" style="color:#1a4a1a;">👤 사용자 쿼리</td>
+          <td class="high">0.55</td><td class="high">0.58</td><td class="med">0.38</td>
+          <td class="zero">0.00</td><td class="zero">0.00</td><td class="zero">0.00</td><td class="zero">0.00</td>
+        </tr>
+      </table>
+    </div>
+    <div class="highlight">
+      → 사용자 쿼리 벡터가 <strong>A 보습 상담</strong>과 가장 유사한 패턴 → 코사인 유사도 높음
+    </div>
+  </div>
+
+  <!-- TF-IDF vs 단순 빈도 -->
+  <div class="card">
+    <h2>TF-IDF vs 단순 단어 빈도</h2>
+    <div class="grid2">
+      <div class="box bad">
+        <h4>❌ 단순 단어 빈도 (BoW)</h4>
+        <p>"피부", "이", "그", "것" 같이 자주 등장하는 단어가 중요 단어로 취급됨</p>
+        <br>
+        <p>상담 데이터 전체에 자주 나오는 "피부"가 높은 가중치 → 변별력 없음</p>
+      </div>
+      <div class="box good">
+        <h4>✅ TF-IDF</h4>
+        <p>모든 제품 문서에 공통 등장하는 "피부"는 IDF가 낮아져 자동으로 가중치 감소</p>
+        <br>
+        <p>특정 상담 질문에 더 특징적으로 나오는 "히알루론산", "세라마이드" 등에 높은 가중치 → 변별력 ↑</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+<footer>MIMO · TF-IDF 벡터화 · sklearn TfidfVectorizer · web_app.py select_expert_row()</footer>
+</body>
+</html>

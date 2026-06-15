@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>web_app.py 시스템 보고서</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Malgun Gothic', 'NanumGothic', sans-serif;
+      background: #F5F5F5;
+      color: #333;
+      line-height: 1.8;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    /* 표지 */
+    .cover {
+      background: linear-gradient(135deg, #1A237E, #283593);
+      color: white;
+      border-radius: 20px;
+      padding: 48px 40px;
+      text-align: center;
+    }
+    .cover h1 { font-size: 28px; margin-bottom: 10px; letter-spacing: -0.5px; }
+    .cover .subtitle { font-size: 15px; opacity: 0.8; margin-bottom: 24px; }
+    .cover-badges { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+    .badge {
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 20px;
+      padding: 4px 14px;
+      font-size: 13px;
+    }
+
+    /* 카드 */
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 28px 32px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+
+    .card-title {
+      font-size: 18px;
+      font-weight: bold;
+      color: #1A237E;
+      border-left: 5px solid #3F51B5;
+      padding-left: 14px;
+      margin-bottom: 20px;
+    }
+
+    /* 흐름도 */
+    .flow {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin: 12px 0;
+    }
+    .flow-box {
+      background: #E8EAF6;
+      border: 2px solid #7986CB;
+      border-radius: 10px;
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: bold;
+      color: #283593;
+      text-align: center;
+      min-width: 100px;
+    }
+    .flow-box.green {
+      background: #E8F5E9;
+      border-color: #81C784;
+      color: #2E7D32;
+    }
+    .flow-box.red {
+      background: #FFEBEE;
+      border-color: #EF9A9A;
+      color: #B71C1C;
+    }
+    .flow-box.orange {
+      background: #FFF3E0;
+      border-color: #FFCC80;
+      color: #E65100;
+    }
+    .flow-box.gray {
+      background: #F5F5F5;
+      border-color: #BDBDBD;
+      color: #616161;
+    }
+    .flow-arrow { font-size: 20px; color: #7986CB; }
+    .flow-arrow.down { display: block; text-align: center; margin: 4px 0; }
+
+    /* 테이블 */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      margin: 12px 0;
+    }
+    th {
+      background: #E8EAF6;
+      color: #1A237E;
+      padding: 10px 14px;
+      text-align: left;
+      font-weight: bold;
+    }
+    td {
+      padding: 10px 14px;
+      border-bottom: 1px solid #F0F0F0;
+      vertical-align: top;
+    }
+    td:first-child { font-family: monospace; color: #3F51B5; font-weight: bold; }
+    tr:hover td { background: #FAFAFA; }
+
+    /* 설명 박스 */
+    .info {
+      background: #E8EAF6;
+      border-left: 4px solid #3F51B5;
+      border-radius: 0 8px 8px 0;
+      padding: 12px 16px;
+      font-size: 14px;
+      margin: 10px 0;
+    }
+    .tip {
+      background: #FFF8E1;
+      border-left: 4px solid #FFD54F;
+      border-radius: 0 8px 8px 0;
+      padding: 12px 16px;
+      font-size: 14px;
+      margin: 10px 0;
+    }
+    .warn {
+      background: #FFEBEE;
+      border-left: 4px solid #EF9A9A;
+      border-radius: 0 8px 8px 0;
+      padding: 12px 16px;
+      font-size: 14px;
+      margin: 10px 0;
+    }
+    .success {
+      background: #E8F5E9;
+      border-left: 4px solid #81C784;
+      border-radius: 0 8px 8px 0;
+      padding: 12px 16px;
+      font-size: 14px;
+      margin: 10px 0;
+    }
+
+    /* DB 다이어그램 */
+    .db-tables {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin: 12px 0;
+    }
+    .db-table {
+      flex: 1;
+      min-width: 260px;
+      border: 2px solid #3F51B5;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .db-table-header {
+      background: #3F51B5;
+      color: white;
+      padding: 10px 16px;
+      font-weight: bold;
+      font-size: 14px;
+    }
+    .db-col {
+      padding: 7px 14px;
+      font-size: 13px;
+      border-bottom: 1px solid #EEEEEE;
+      display: flex;
+      justify-content: space-between;
+    }
+    .db-col:last-child { border-bottom: none; }
+    .db-col .col-name { font-family: monospace; color: #283593; }
+    .db-col .col-type { color: #888; font-size: 12px; }
+    .pk { background: #FFF8E1; }
+    .fk { background: #F3E5F5; }
+
+    h3 { font-size: 15px; color: #555; margin: 18px 0 8px; font-weight: bold; }
+    h4 { font-size: 14px; color: #777; margin: 12px 0 6px; }
+
+    .route-method {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: bold;
+      font-family: monospace;
+      margin-right: 6px;
+    }
+    .get  { background: #E3F2FD; color: #1565C0; }
+    .post { background: #E8F5E9; color: #2E7D32; }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin: 12px 0;
+    }
+    @media (max-width: 640px) { .two-col { grid-template-columns: 1fr; } }
+
+    .mini-card {
+      background: #F8F9FF;
+      border: 1px solid #C5CAE9;
+      border-radius: 10px;
+      padding: 14px 16px;
+    }
+    .mini-card h4 { margin-top: 0; color: #1A237E; }
+
+    /* 목차 */
+    .toc {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 10px;
+      margin: 12px 0;
+    }
+    .toc-item {
+      background: #E8EAF6;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: #283593;
+      font-weight: bold;
+    }
+    .toc-item span { font-size: 11px; color: #666; font-weight: normal; display: block; margin-top: 2px; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- 표지 -->
+  <div class="cover">
+    <h1>web_app.py 시스템 보고서</h1>
+    <p class="subtitle">AI 피부 스킨케어 추천 웹 서비스 · 최종 버전 작동 흐름 분석</p>
+    <div class="cover-badges">
+      <span class="badge">Flask 웹 서버</span>
+      <span class="badge">TF-IDF 유사도 분석</span>
+      <span class="badge">KoNLPy 한국어 처리</span>
+      <span class="badge">SQLite 사용자 DB</span>
+      <span class="badge">올리브영 제품 연동</span>
+      <span class="badge">관리자 대시보드</span>
+    </div>
+  </div>
+
+
+  <!-- 목차 -->
+  <div class="card">
+    <p class="card-title">📋 목차</p>
+    <div class="toc">
+      <div class="toc-item">1. 전체 시스템 구조<span>컴포넌트 한눈에 보기</span></div>
+      <div class="toc-item">2. 서버 시작 흐름<span>데이터·모델 로드</span></div>
+      <div class="toc-item">3. 페이지 라우트<span>URL별 동작</span></div>
+      <div class="toc-item">4. 추천 알고리즘<span>Expert·Review 모드</span></div>
+      <div class="toc-item">5. 사용자 인증<span>회원가입·로그인</span></div>
+      <div class="toc-item">6. 데이터베이스<span>테이블 구조</span></div>
+      <div class="toc-item">7. 보안 처리<span>CSRF·세션·검증</span></div>
+      <div class="toc-item">8. 응답 구조<span>JSON 반환 형태</span></div>
+    </div>
+  </div>
+
+
+  <!-- 1. 전체 시스템 구조 -->
+  <div class="card">
+    <p class="card-title">1. 전체 시스템 구조</p>
+
+    <div class="flow">
+      <div class="flow-box">브라우저<br><small>사용자</small></div>
+      <span class="flow-arrow">⇄</span>
+      <div class="flow-box">Gunicorn<br><small>웹 서버</small></div>
+      <span class="flow-arrow">⇄</span>
+      <div class="flow-box">Flask<br><small>web_app.py</small></div>
+      <span class="flow-arrow">⇄</span>
+      <div class="flow-box green">SQLite DB<br><small>users.db</small></div>
+    </div>
+
+    <div class="flow" style="margin-top:8px;">
+      <div class="flow-box" style="visibility:hidden; min-width:100px;"></div>
+      <span class="flow-arrow" style="visibility:hidden;">→</span>
+      <div class="flow-box" style="visibility:hidden; min-width:100px;"></div>
+      <span class="flow-arrow">↕</span>
+      <div class="flow-box orange">AI 분석 엔진<br><small>TF-IDF + KoNLPy</small></div>
+      <span class="flow-arrow">←</span>
+      <div class="flow-box green">데이터·모델<br><small>CSV + .pkl + .mtx</small></div>
+    </div>
+
+    <h3>사용 파일 목록</h3>
+    <table>
+      <tr><th>파일</th><th>용도</th><th>필수 여부</th></tr>
+      <tr><td>datasets/skin_data_final.csv</td><td>9031개 피부 상담 데이터</td><td>✅ 필수</td></tr>
+      <tr><td>models/Tfidf_skin_data_rebuild.mtx</td><td>피부 상담 TF-IDF 행렬</td><td>✅ 필수</td></tr>
+      <tr><td>models/tfidf_rebuild.pkl</td><td>피부 상담 TF-IDF 모델</td><td>✅ 필수</td></tr>
+      <tr><td>datasets/oliveyoung_product_list.csv</td><td>올리브영 제품 목록</td><td>⚡ 선택</td></tr>
+      <tr><td>datasets/oliveyoung_reviews_preprocessed.csv</td><td>올리브영 리뷰 데이터</td><td>⚡ 선택</td></tr>
+      <tr><td>models/Tfidf_reviews.mtx</td><td>리뷰 TF-IDF 행렬</td><td>⚡ 선택</td></tr>
+      <tr><td>models/tfidf_reviews.pkl</td><td>리뷰 TF-IDF 모델</td><td>⚡ 선택</td></tr>
+      <tr><td>datasets/stopwords.csv</td><td>불용어 목록</td><td>⚡ 선택 (없으면 기본값)</td></tr>
+      <tr><td>instance/users.db</td><td>사용자·검색기록 DB</td><td>✅ 자동 생성</td></tr>
+    </table>
+  </div>
+
+
+  <!-- 2. 서버 시작 흐름 -->
+  <div class="card">
+    <p class="card-title">2. 서버 시작 흐름</p>
+
+    <div class="info">서버가 켜지는 순간 아래 순서대로 자동 실행돼요. 이 과정이 끝나야 요청을 받을 수 있어요.</div>
+
+    <div style="margin: 16px 0;">
+      <div class="flow-box" style="width:100%; margin-bottom:8px;">① Flask 앱 생성 + 비밀키 로드 (SECRET_KEY)</div>
+      <span class="flow-arrow down">↓</span>
+      <div class="flow-box" style="width:100%; margin-bottom:8px;">② 피부 상담 데이터 로드 (skin_data_final.csv + rebuild TF-IDF 모델)</div>
+      <span class="flow-arrow down">↓</span>
+      <div class="flow-box orange" style="width:100%; margin-bottom:8px;">③ 올리브영 제품·리뷰 데이터 로드 시도 (실패해도 서버는 정상 가동)</div>
+      <span class="flow-arrow down">↓</span>
+      <div class="flow-box" style="width:100%; margin-bottom:8px;">④ KoNLPy Okt 형태소 분석기 초기화 (JVM 시작 — 5~15초 소요)</div>
+      <span class="flow-arrow down">↓</span>
+      <div class="flow-box" style="width:100%; margin-bottom:8px;">⑤ 불용어 목록 로드</div>
+      <span class="flow-arrow down">↓</span>
+      <div class="flow-box green" style="width:100%; margin-bottom:8px;">⑥ DB 초기화 (users.db 테이블 생성 + 관리자 계정 자동 생성)</div>
+      <span class="flow-arrow down">↓</span>
+      <div class="flow-box green" style="width:100%;">✅ 서버 준비 완료 — 요청 대기</div>
+    </div>
+
+    <h3>관리자 계정 기본값</h3>
+    <table>
+      <tr><th>항목</th><th>기본값</th><th>변경 방법</th></tr>
+      <tr><td>username</td><td>admin</td><td>환경변수 SKINSCOPE_ADMIN_USERNAME</td></tr>
+      <tr><td>password</td><td>Admin1234!</td><td>환경변수 SKINSCOPE_ADMIN_PASSWORD</td></tr>
+      <tr><td>email</td><td>admin@skinscope.local</td><td>환경변수 SKINSCOPE_ADMIN_EMAIL</td></tr>
+    </table>
+
+    <h3>서버 실행 명령어</h3>
+    <div class="tip">
+      <b>개발용 (로컬):</b> <code>python web_app.py</code> — 기본 127.0.0.1:5006<br>
+      <b>운영용 (라즈베리파이):</b> <code>gunicorn -w 2 -b 0.0.0.0:5000 web_app:app</code>
+    </div>
+  </div>
+
+
+  <!-- 3. 페이지 라우트 -->
+  <div class="card">
+    <p class="card-title">3. 페이지 라우트 (URL별 동작)</p>
+
+    <table>
+      <tr><th>URL</th><th>메서드</th><th>역할</th><th>로그인 필요</th></tr>
+      <tr>
+        <td>/</td>
+        <td><span class="route-method get">GET</span></td>
+        <td>메인 페이지 (index.html) — 로그인 시 최근 검색 5개 표시</td>
+        <td>❌</td>
+      </tr>
+      <tr>
+        <td>/analysis</td>
+        <td><span class="route-method get">GET</span></td>
+        <td>분석 페이지 (analysis.html) — 추천 분석 화면</td>
+        <td>❌</td>
+      </tr>
+      <tr>
+        <td>/register</td>
+        <td><span class="route-method get">GET</span> <span class="route-method post">POST</span></td>
+        <td>회원가입 페이지 (auth.html)</td>
+        <td>❌</td>
+      </tr>
+      <tr>
+        <td>/login</td>
+        <td><span class="route-method get">GET</span> <span class="route-method post">POST</span></td>
+        <td>로그인 페이지 (auth.html)</td>
+        <td>❌</td>
+      </tr>
+      <tr>
+        <td>/logout</td>
+        <td><span class="route-method post">POST</span></td>
+        <td>로그아웃 (세션 초기화 후 메인으로 이동)</td>
+        <td>✅</td>
+      </tr>
+      <tr>
+        <td>/recommend</td>
+        <td><span class="route-method post">POST</span></td>
+        <td>AI 추천 API — JSON 요청/응답</td>
+        <td>❌ (비로그인도 가능)</td>
+      </tr>
+      <tr>
+        <td>/admin/users</td>
+        <td><span class="route-method get">GET</span></td>
+        <td>관리자 대시보드 (admin.html)</td>
+        <td>✅ 관리자만</td>
+      </tr>
+      <tr>
+        <td>/admin/users/&lt;id&gt;/delete</td>
+        <td><span class="route-method post">POST</span></td>
+        <td>회원 삭제</td>
+        <td>✅ 관리자만</td>
+      </tr>
+    </table>
+  </div>
+
+
+  <!-- 4. 추천 알고리즘 -->
+  <div class="card">
+    <p class="card-title">4. 추천 알고리즘 흐름</p>
+
+    <div class="two-col">
+      <div class="mini-card">
+        <h4>🔬 Expert Mode (전문가 상담 기반)</h4>
+        <p style="font-size:13px;">피부 고민 키워드를 입력하면 9031개 상담 데이터에서 가장 유사한 답변을 찾아요.</p>
+      </div>
+      <div class="mini-card">
+        <h4>⭐ Review Mode (리뷰 기반 제품 추천)</h4>
+        <p style="font-size:13px;">올리브영 리뷰 데이터에서 고민과 관련된 실제 제품 3개를 추천해요.</p>
+      </div>
+    </div>
+
+    <h3>Expert Mode 상세 흐름</h3>
+
+    <h4>📍 키워드 있을 때</h4>
+    <div class="flow" style="flex-direction:column; align-items:flex-start; gap:6px;">
+      <div class="flow-box" style="width:100%;">① 사용자 입력 수신 (keyword, gender, age, skin_type)</div>
+      <span class="flow-arrow down">↓</span>
+      <div class="flow-box" style="width:100%;">② 텍스트 전처리 — 한글만 추출 → 형태소 분석(Okt) → 명사/동사/형용사만 남김</div>
+      <span class="flow-arrow down">↓</span>
+      <div class="flow-box" style="width:100%;">③ TF-IDF 변환 — 전처리된 텍스트를 숫자 벡터로 변환</div>
+      <span class="flow-arrow down">↓</span>
+      <div class="flow-box" style="width:100%;">④ 코사인 유사도 계산 — 사용자 벡터 vs 9031개 데이터 벡터</div>
+      <span class="flow-arrow down">↓</span>
+      <div class="flow-box orange" style="width:100%;">⑤ 프로필 보너스 추가 — 성별/연령/피부타입 일치 시 각 +0.05점 (최대 +0.15)</div>
+      <span class="flow-arrow down">↓</span>
+      <div class="flow-box green" style="width:100%;">⑥ 최종 점수 최고값 행 선택 → 응답 반환</div>
+    </div>
+
+    <h4 style="margin-top:14px;">📍 키워드 없을 때 (프로필만 선택)</h4>
+    <div class="flow">
+      <div class="flow-box">프로필 조건으로<br>데이터 필터링</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-box green">필터된 첫 번째<br>행 반환</div>
+    </div>
+
+    <h3>Review Mode 상세 흐름</h3>
+    <div class="flow">
+      <div class="flow-box">키워드 전처리</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-box">리뷰 TF-IDF<br>유사도 계산</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-box">유사도 높은 순<br>정렬</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-box green">중복 제거 후<br>상위 3개 제품 반환</div>
+    </div>
+
+    <div class="info">
+      Review Mode는 올리브영 데이터가 로드된 경우에만 사용 가능해요. 데이터가 없으면 503 오류를 반환해요.
+    </div>
+
+    <h3>프로필 보너스 원리</h3>
+    <table>
+      <tr><th>조건</th><th>보너스 점수</th><th>이유</th></tr>
+      <tr><td>성별 일치</td><td>+0.05</td><td>같은 성별 데이터 우선 선택</td></tr>
+      <tr><td>연령대 일치</td><td>+0.05</td><td>같은 연령 데이터 우선 선택</td></tr>
+      <tr><td>피부 타입 일치</td><td>+0.05</td><td>같은 피부 타입 우선 선택</td></tr>
+      <tr><td>최대 보너스</td><td>+0.15</td><td>3가지 모두 일치 시</td></tr>
+    </table>
+    <div class="tip">보너스가 너무 크면 내용과 무관한 데이터가 선택될 수 있어서 0.05로 작게 설정했어요. 내용 유사도가 주점수, 프로필은 동점일 때 타이브레이커 역할이에요.</div>
+  </div>
+
+
+  <!-- 5. 사용자 인증 -->
+  <div class="card">
+    <p class="card-title">5. 사용자 인증 흐름</p>
+
+    <div class="two-col">
+      <div>
+        <h3>회원가입</h3>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <div class="flow-box" style="width:100%;">폼 입력 (아이디, 이름, 이메일, 비밀번호, 프로필)</div>
+          <span class="flow-arrow down">↓</span>
+          <div class="flow-box" style="width:100%;">CSRF 토큰 검증</div>
+          <span class="flow-arrow down">↓</span>
+          <div class="flow-box" style="width:100%;">입력값 유효성 검사</div>
+          <span class="flow-arrow down">↓</span>
+          <div class="flow-box orange" style="width:100%;">비밀번호 해시 생성 (werkzeug)</div>
+          <span class="flow-arrow down">↓</span>
+          <div class="flow-box green" style="width:100%;">DB 저장 → 로그인 페이지로 이동</div>
+        </div>
+      </div>
+      <div>
+        <h3>로그인</h3>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <div class="flow-box" style="width:100%;">아이디 + 비밀번호 입력</div>
+          <span class="flow-arrow down">↓</span>
+          <div class="flow-box" style="width:100%;">CSRF 토큰 검증</div>
+          <span class="flow-arrow down">↓</span>
+          <div class="flow-box" style="width:100%;">DB에서 사용자 조회</div>
+          <span class="flow-arrow down">↓</span>
+          <div class="flow-box orange" style="width:100%;">비밀번호 해시 비교</div>
+          <span class="flow-arrow down">↓</span>
+          <div class="flow-box green" style="width:100%;">세션에 user_id 저장 → 메인으로 이동</div>
+        </div>
+      </div>
+    </div>
+
+    <h3>회원가입 유효성 검사 규칙</h3>
+    <table>
+      <tr><th>항목</th><th>규칙</th></tr>
+      <tr><td>아이디</td><td>영문 소문자·숫자·밑줄만, 4~20자</td></tr>
+      <tr><td>이름</td><td>2~30자</td></tr>
+      <tr><td>이메일</td><td>@와 도메인 포함 형식</td></tr>
+      <tr><td>비밀번호</td><td>영문 + 숫자 포함, 8자 이상</td></tr>
+    </table>
+
+    <h3>모든 요청 전 실행 (before_request)</h3>
+    <div class="info">
+      모든 요청마다 세션의 <code>user_id</code>로 DB에서 사용자 정보를 조회해서 <code>g.user</code>에 저장해요. 로그인 여부와 관리자 여부를 판단하는 데 사용돼요.
+    </div>
+  </div>
+
+
+  <!-- 6. 데이터베이스 -->
+  <div class="card">
+    <p class="card-title">6. 데이터베이스 구조 (users.db)</p>
+
+    <div class="db-tables">
+      <div class="db-table">
+        <div class="db-table-header">📋 users 테이블</div>
+        <div class="db-col pk"><span class="col-name">id</span><span class="col-type">INTEGER PK</span></div>
+        <div class="db-col"><span class="col-name">username</span><span class="col-type">TEXT UNIQUE</span></div>
+        <div class="db-col"><span class="col-name">name</span><span class="col-type">TEXT</span></div>
+        <div class="db-col"><span class="col-name">email</span><span class="col-type">TEXT UNIQUE</span></div>
+        <div class="db-col"><span class="col-name">password_hash</span><span class="col-type">TEXT</span></div>
+        <div class="db-col"><span class="col-name">role</span><span class="col-type">TEXT (user/admin)</span></div>
+        <div class="db-col"><span class="col-name">gender</span><span class="col-type">TEXT</span></div>
+        <div class="db-col"><span class="col-name">age</span><span class="col-type">TEXT</span></div>
+        <div class="db-col"><span class="col-name">skin_type</span><span class="col-type">TEXT</span></div>
+        <div class="db-col"><span class="col-name">recommendation_count</span><span class="col-type">INTEGER</span></div>
+        <div class="db-col"><span class="col-name">created_at</span><span class="col-type">TEXT (UTC ISO)</span></div>
+        <div class="db-col"><span class="col-name">last_login</span><span class="col-type">TEXT (UTC ISO)</span></div>
+      </div>
+
+      <div class="db-table">
+        <div class="db-table-header">🔍 search_history 테이블</div>
+        <div class="db-col pk"><span class="col-name">id</span><span class="col-type">INTEGER PK</span></div>
+        <div class="db-col fk"><span class="col-name">user_id</span><span class="col-type">INTEGER FK → users</span></div>
+        <div class="db-col"><span class="col-name">keyword</span><span class="col-type">TEXT (원본 입력)</span></div>
+        <div class="db-col"><span class="col-name">search_terms</span><span class="col-type">TEXT (전처리 결과)</span></div>
+        <div class="db-col"><span class="col-name">gender</span><span class="col-type">TEXT</span></div>
+        <div class="db-col"><span class="col-name">age</span><span class="col-type">TEXT</span></div>
+        <div class="db-col"><span class="col-name">skin_type</span><span class="col-type">TEXT</span></div>
+        <div class="db-col"><span class="col-name">recommended_ingredients</span><span class="col-type">TEXT</span></div>
+        <div class="db-col"><span class="col-name">created_at</span><span class="col-type">TEXT (UTC ISO)</span></div>
+      </div>
+    </div>
+
+    <div class="info">
+      비로그인 사용자도 검색 기록이 저장돼요. 이 경우 <code>user_id</code>가 NULL로 저장돼요.<br>
+      인기 검색어는 최근 1000개의 <code>search_terms</code>에서 빈도를 계산해 보여줘요.
+    </div>
+  </div>
+
+
+  <!-- 7. 보안 처리 -->
+  <div class="card">
+    <p class="card-title">7. 보안 처리</p>
+
+    <table>
+      <tr><th>보안 항목</th><th>방법</th><th>목적</th></tr>
+      <tr><td>CSRF 방어</td><td>폼마다 csrf_token 검증 (compare_digest)</td><td>외부에서 위조 요청 차단</td></tr>
+      <tr><td>비밀번호</td><td>werkzeug generate_password_hash</td><td>평문 저장 방지</td></tr>
+      <tr><td>세션 보안</td><td>HTTPONLY + SameSite=Lax 쿠키</td><td>XSS·CSRF 방어</td></tr>
+      <tr><td>세션 유지</td><td>8시간 (PERMANENT_SESSION_LIFETIME)</td><td>자동 로그아웃</td></tr>
+      <tr><td>비밀키</td><td>파일 또는 환경변수에서 로드</td><td>세션 위변조 방지</td></tr>
+      <tr><td>안전한 리다이렉트</td><td>같은 도메인만 허용 (is_safe_redirect)</td><td>Open Redirect 방어</td></tr>
+      <tr><td>제품 URL 검증</td><td>oliveyoung.co.kr 도메인만 허용</td><td>악성 링크 차단</td></tr>
+      <tr><td>입력 길이 제한</td><td>keyword 최대 500자</td><td>과도한 입력 방어</td></tr>
+    </table>
+  </div>
+
+
+  <!-- 8. 응답 구조 -->
+  <div class="card">
+    <p class="card-title">8. /recommend 응답 JSON 구조</p>
+
+    <div class="two-col">
+      <div>
+        <h3>Expert Mode 응답</h3>
+        <div style="background:#1E1E2E; color:#CDD6F4; border-radius:10px; padding:16px; font-family:monospace; font-size:13px; line-height:1.8;">
+          {<br>
+          &nbsp;&nbsp;<span style="color:#A6E3A1">"mode"</span>: <span style="color:#FAB387">"expert"</span>,<br>
+          &nbsp;&nbsp;<span style="color:#A6E3A1">"profile"</span>: <span style="color:#FAB387">"여성, 30대, 건성"</span>,<br>
+          &nbsp;&nbsp;<span style="color:#A6E3A1">"response"</span>: <span style="color:#FAB387">"추천 솔루션 텍스트..."</span>,<br>
+          &nbsp;&nbsp;<span style="color:#A6E3A1">"rec_ingredients"</span>: <span style="color:#FAB387">"나이아신아마이드..."</span>,<br>
+          &nbsp;&nbsp;<span style="color:#A6E3A1">"avoid_ingredients"</span>: <span style="color:#FAB387">"알코올..."</span>,<br>
+          &nbsp;&nbsp;<span style="color:#A6E3A1">"analysis_basis"</span>: { ... },<br>
+          &nbsp;&nbsp;<span style="color:#A6E3A1">"product_recommendations"</span>: [...]<br>
+          }
+        </div>
+      </div>
+      <div>
+        <h3>Review Mode 응답</h3>
+        <div style="background:#1E1E2E; color:#CDD6F4; border-radius:10px; padding:16px; font-family:monospace; font-size:13px; line-height:1.8;">
+          {<br>
+          &nbsp;&nbsp;<span style="color:#A6E3A1">"mode"</span>: <span style="color:#FAB387">"review"</span>,<br>
+          &nbsp;&nbsp;<span style="color:#A6E3A1">"results"</span>: [<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;{<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#A6E3A1">"name"</span>: <span style="color:#FAB387">"제품명"</span>,<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#A6E3A1">"brand"</span>: <span style="color:#FAB387">"브랜드"</span>,<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#A6E3A1">"category"</span>: <span style="color:#FAB387">"스킨/토너"</span>,<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#A6E3A1">"link"</span>: <span style="color:#FAB387">"oliveyoung URL"</span>,<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#A6E3A1">"review_snippet"</span>: <span style="color:#FAB387">"리뷰 180자..."</span>,<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#A6E3A1">"match_percent"</span>: <span style="color:#FAB387">85</span><br>
+          &nbsp;&nbsp;&nbsp;&nbsp;}<br>
+          &nbsp;&nbsp;]<br>
+          }
+        </div>
+      </div>
+    </div>
+
+    <h3>analysis_basis 상세 (Expert Mode)</h3>
+    <table>
+      <tr><th>필드</th><th>내용</th></tr>
+      <tr><td>dataset_count</td><td>전체 데이터 수 (9031)</td></tr>
+      <tr><td>extracted_terms</td><td>전처리로 추출된 핵심 단어 목록</td></tr>
+      <tr><td>selected_profile</td><td>사용자가 선택한 프로필</td></tr>
+      <tr><td>matched_profile</td><td>매칭된 데이터의 프로필</td></tr>
+      <tr><td>matched_question</td><td>매칭된 원본 질문</td></tr>
+      <tr><td>text_similarity_percent</td><td>텍스트 유사도 점수 (%)</td></tr>
+      <tr><td>profile_matches</td><td>일치한 프로필 항목 목록</td></tr>
+      <tr><td>profile_bonus</td><td>부여된 보너스 점수</td></tr>
+    </table>
+  </div>
+
+
+  <div style="text-align:center; color:#AAA; font-size:13px; padding-bottom:20px;">
+    web_app.py 시스템 보고서 · AI 피부 스킨케어 추천 프로젝트
+  </div>
+
+</div>
+</body>
+</html>

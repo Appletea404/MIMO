@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs><linearGradient id="seal" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d9545d"/><stop offset="1" stop-color="#8c1737"/></linearGradient></defs>
+  <rect x="5" y="5" width="54" height="54" rx="17" fill="url(#seal)"/>
+  <rect x="8" y="8" width="48" height="48" rx="14" fill="none" stroke="#ffd8ca" stroke-width="1.5" opacity=".72"/>
+  <text x="32" y="44" fill="#fff9f4" font-size="35" font-family="Noto Serif CJK KR, Noto Serif KR, serif" font-weight="700" text-anchor="middle">美</text>
+</svg>

@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI 분석 기법 보고서</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Malgun Gothic', 'NanumGothic', sans-serif;
+      background: #F5F5F5;
+      color: #333;
+      line-height: 1.9;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    /* 표지 */
+    .cover {
+      background: linear-gradient(135deg, #4A148C, #7B1FA2);
+      color: white;
+      border-radius: 20px;
+      padding: 48px 40px;
+      text-align: center;
+    }
+    .cover h1 { font-size: 28px; margin-bottom: 10px; }
+    .cover p  { font-size: 15px; opacity: 0.85; margin-bottom: 24px; }
+    .cover-badges { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+    .badge {
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 20px;
+      padding: 4px 16px;
+      font-size: 13px;
+    }
+
+    /* 카드 */
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 32px 36px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+
+    .card-title {
+      font-size: 20px;
+      font-weight: bold;
+      padding-left: 14px;
+      margin-bottom: 22px;
+    }
+    .purple { color: #6A1B9A; border-left: 5px solid #9C27B0; }
+    .blue   { color: #0D47A1; border-left: 5px solid #1976D2; }
+    .green  { color: #1B5E20; border-left: 5px solid #388E3C; }
+    .dark   { color: #212121; border-left: 5px solid #616161; }
+
+    h3 { font-size: 16px; font-weight: bold; margin: 20px 0 8px; color: #444; }
+    h4 { font-size: 14px; font-weight: bold; margin: 14px 0 6px; color: #666; }
+
+    /* 흐름도 */
+    .flow-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin: 12px 0;
+    }
+    .fbox {
+      border-radius: 10px;
+      padding: 10px 18px;
+      font-size: 13px;
+      font-weight: bold;
+      text-align: center;
+      min-width: 110px;
+    }
+    .fbox.purple { background: #F3E5F5; border: 2px solid #CE93D8; color: #4A148C; }
+    .fbox.blue   { background: #E3F2FD; border: 2px solid #90CAF9; color: #0D47A1; }
+    .fbox.green  { background: #E8F5E9; border: 2px solid #A5D6A7; color: #1B5E20; }
+    .fbox.gray   { background: #F5F5F5; border: 2px solid #BDBDBD; color: #424242; }
+    .fbox.orange { background: #FFF3E0; border: 2px solid #FFCC80; color: #E65100; }
+    .farrow { font-size: 22px; color: #9E9E9E; }
+    .farrow.down { display: block; text-align: center; margin: 4px auto; }
+
+    /* 예시 박스 */
+    .example {
+      background: #FAFAFA;
+      border: 1px solid #E0E0E0;
+      border-radius: 10px;
+      padding: 16px 20px;
+      font-size: 14px;
+      margin: 10px 0;
+    }
+    .example .label {
+      font-size: 12px;
+      font-weight: bold;
+      color: #888;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* 설명 박스 */
+    .info   { background: #EDE7F6; border-left: 4px solid #9C27B0; border-radius: 0 8px 8px 0; padding: 12px 16px; font-size: 14px; margin: 10px 0; }
+    .tip    { background: #FFF8E1; border-left: 4px solid #FFD54F; border-radius: 0 8px 8px 0; padding: 12px 16px; font-size: 14px; margin: 10px 0; }
+    .binfo  { background: #E3F2FD; border-left: 4px solid #1976D2; border-radius: 0 8px 8px 0; padding: 12px 16px; font-size: 14px; margin: 10px 0; }
+    .ginfo  { background: #E8F5E9; border-left: 4px solid #388E3C; border-radius: 0 8px 8px 0; padding: 12px 16px; font-size: 14px; margin: 10px 0; }
+
+    /* 테이블 */
+    table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 12px 0; }
+    th { padding: 10px 14px; text-align: left; font-weight: bold; }
+    td { padding: 10px 14px; border-bottom: 1px solid #F0F0F0; vertical-align: top; }
+    tr:hover td { background: #FAFAFA; }
+    .th-purple { background: #F3E5F5; color: #4A148C; }
+    .th-blue   { background: #E3F2FD; color: #0D47A1; }
+    .th-green  { background: #E8F5E9; color: #1B5E20; }
+    .th-dark   { background: #F5F5F5; color: #212121; }
+
+    /* 수식 박스 */
+    .formula {
+      background: #1E1E2E;
+      color: #CDD6F4;
+      border-radius: 10px;
+      padding: 16px 20px;
+      font-family: 'Consolas', monospace;
+      font-size: 15px;
+      text-align: center;
+      margin: 12px 0;
+      letter-spacing: 0.5px;
+    }
+    .formula .comment { color: #6C7086; font-size: 12px; margin-top: 8px; }
+
+    /* 벡터 시각화 */
+    .vector-row {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin: 8px 0;
+    }
+    .vec-cell {
+      width: 48px;
+      height: 48px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: bold;
+      font-family: monospace;
+    }
+    .vec-zero { background: #F5F5F5; color: #BDBDBD; border: 1px solid #E0E0E0; }
+    .vec-low  { background: #E3F2FD; color: #1565C0; border: 1px solid #90CAF9; }
+    .vec-mid  { background: #E8EAF6; color: #283593; border: 1px solid #9FA8DA; }
+    .vec-high { background: #3F51B5; color: white; border: 1px solid #283593; }
+    .vec-label { font-size: 11px; color: #888; text-align: center; width: 48px; }
+
+    /* 코사인 다이어그램 */
+    .cosine-visual {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin: 12px 0;
+    }
+    .cosine-case {
+      flex: 1;
+      min-width: 200px;
+      border-radius: 10px;
+      padding: 16px;
+      text-align: center;
+    }
+    .cosine-case .score { font-size: 28px; font-weight: bold; margin: 8px 0; }
+    .cosine-case .desc { font-size: 13px; }
+    .case-high { background: #E8F5E9; border: 2px solid #81C784; }
+    .case-mid  { background: #FFF8E1; border: 2px solid #FFD54F; }
+    .case-low  { background: #FFEBEE; border: 2px solid #EF9A9A; }
+
+    /* 단계 번호 */
+    .step-circle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      font-weight: bold;
+      font-size: 15px;
+      margin-right: 10px;
+      flex-shrink: 0;
+    }
+    .step-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 0;
+      margin: 10px 0;
+    }
+
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 12px 0; }
+    @media (max-width: 640px) { .two-col { grid-template-columns: 1fr; } }
+
+    .mini-card {
+      border-radius: 10px;
+      padding: 16px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- 표지 -->
+  <div class="cover">
+    <h1>AI 분석 기법 보고서</h1>
+    <p>스킨케어 추천 시스템에 사용된 3가지 핵심 기술 상세 설명</p>
+    <div class="cover-badges">
+      <span class="badge">KoNLPy Okt — 한국어 형태소 분석</span>
+      <span class="badge">TF-IDF — 텍스트 벡터화</span>
+      <span class="badge">코사인 유사도 — 유사도 계산</span>
+    </div>
+  </div>
+
+
+  <!-- 전체 동작 순서 요약 -->
+  <div class="card">
+    <p class="card-title dark">🔄 전체 동작 순서 한눈에 보기</p>
+
+    <div class="example">
+      <div class="label">예시 상황</div>
+      사용자가 <b>"검버섯이 생겼어요"</b> 를 입력하고 <b>[여성, 50대 이상, 복합성]</b> 을 선택했을 때
+    </div>
+
+    <div style="margin: 20px 0; display: flex; flex-direction: column; gap: 0;">
+
+      <div style="display:flex; align-items:stretch; gap:0;">
+        <div style="display:flex; flex-direction:column; align-items:center; width:50px;">
+          <div class="step-circle" style="background:#9C27B0; color:white;">1</div>
+          <div style="flex:1; width:2px; background:#E0E0E0; margin: 4px 0;"></div>
+        </div>
+        <div style="flex:1; padding: 0 0 20px 12px;">
+          <b style="color:#6A1B9A;">KoNLPy Okt — 형태소 분석</b>
+          <div class="flow-row" style="margin-top:8px;">
+            <div class="fbox gray">"검버섯이<br>생겼어요"</div>
+            <span class="farrow">→</span>
+            <div class="fbox purple">Okt 분석<br>(품사 태깅)</div>
+            <span class="farrow">→</span>
+            <div class="fbox purple">["검버섯",<br>"생기다"]</div>
+          </div>
+          <div class="info">한글이 아닌 문자 제거 → 단어 쪼개기 → 명사·동사·형용사만 추출 → 기본형 변환</div>
+        </div>
+      </div>
+
+      <div style="display:flex; align-items:stretch; gap:0;">
+        <div style="display:flex; flex-direction:column; align-items:center; width:50px;">
+          <div class="step-circle" style="background:#1976D2; color:white;">2</div>
+          <div style="flex:1; width:2px; background:#E0E0E0; margin: 4px 0;"></div>
+        </div>
+        <div style="flex:1; padding: 0 0 20px 12px;">
+          <b style="color:#0D47A1;">TF-IDF — 텍스트 벡터화</b>
+          <div class="flow-row" style="margin-top:8px;">
+            <div class="fbox blue">["검버섯",<br>"생기다"]</div>
+            <span class="farrow">→</span>
+            <div class="fbox blue">TF-IDF<br>변환</div>
+            <span class="farrow">→</span>
+            <div class="fbox blue">[0, 0.82,<br>0, 0.45, ...]</div>
+          </div>
+          <div class="binfo">단어를 숫자 배열(벡터)로 변환. "검버섯"처럼 희귀한 단어일수록 높은 점수를 받음</div>
+        </div>
+      </div>
+
+      <div style="display:flex; align-items:stretch; gap:0;">
+        <div style="display:flex; flex-direction:column; align-items:center; width:50px;">
+          <div class="step-circle" style="background:#388E3C; color:white;">3</div>
+          <div style="flex:1; width:2px; background:#E0E0E0; margin: 4px 0;"></div>
+        </div>
+        <div style="flex:1; padding: 0 0 20px 12px;">
+          <b style="color:#1B5E20;">코사인 유사도 — 유사도 계산</b>
+          <div class="flow-row" style="margin-top:8px;">
+            <div class="fbox green">사용자<br>벡터</div>
+            <span class="farrow">→</span>
+            <div class="fbox green">9031개<br>벡터와 비교</div>
+            <span class="farrow">→</span>
+            <div class="fbox green">유사도 점수<br>9031개</div>
+          </div>
+          <div class="ginfo">사용자 입력과 데이터 9031개를 하나씩 비교해서 0~1 사이 점수를 계산</div>
+        </div>
+      </div>
+
+      <div style="display:flex; align-items:stretch; gap:0;">
+        <div style="display:flex; flex-direction:column; align-items:center; width:50px;">
+          <div class="step-circle" style="background:#E65100; color:white;">4</div>
+        </div>
+        <div style="flex:1; padding: 0 0 0 12px;">
+          <b style="color:#E65100;">프로필 보너스 + 최종 선택</b>
+          <div class="flow-row" style="margin-top:8px;">
+            <div class="fbox orange">유사도 점수<br>+ 보너스</div>
+            <span class="farrow">→</span>
+            <div class="fbox orange">최고 점수<br>행 선택</div>
+            <span class="farrow">→</span>
+            <div class="fbox green">추천 결과<br>반환 ✅</div>
+          </div>
+          <div class="tip">성별·연령·피부타입 일치 시 각 +0.05점 추가. 내용 유사도가 주점수, 프로필은 보조 역할</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- PART 1: KoNLPy Okt -->
+  <div class="card">
+    <p class="card-title purple">① KoNLPy Okt — 한국어 형태소 분석기</p>
+
+    <h3>형태소 분석이란?</h3>
+    <div class="info">
+      <b>형태소(形態素)</b>는 의미를 가진 가장 작은 언어 단위예요.<br>
+      "검버섯이 생겼어요"를 그냥 띄어쓰기로 나누면 ["검버섯이", "생겼어요"] 가 되는데, 이건 컴퓨터가 검색하기 어려워요.<br>
+      형태소 분석을 하면 <b>["검버섯(명사)", "생기다(동사)"]</b> 처럼 의미 있는 핵심 단어만 추출할 수 있어요.
+    </div>
+
+    <h3>Okt(Open Korean Text)란?</h3>
+    <div class="info">
+      트위터에서 만든 오픈소스 한국어 형태소 분석기예요. KoNLPy 라이브러리를 통해 사용해요.<br>
+      내부적으로 <b>Java(자바)</b>를 실행해서 동작하기 때문에 JDK 설치가 필수예요.<br>
+      처음 실행 시 JVM(자바 가상머신)을 켜는 데 5~15초 걸려요.
+    </div>
+
+    <h3>이 프로젝트에서 하는 일 (4단계)</h3>
+
+    <div style="margin: 12px 0;">
+      <div class="example">
+        <div class="label">입력</div>
+        <b>"검버섯이 생겼어요!! oily skin"</b>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:8px; margin: 12px 0;">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="background:#9C27B0; color:white; border-radius:6px; padding:4px 12px; font-size:12px; font-weight:bold; white-space:nowrap;">단계 1</div>
+          <div style="flex:1;">한글이 아닌 문자 제거 (영어·숫자·특수문자 → 공백)</div>
+          <div class="fbox purple" style="min-width:180px; font-size:12px;">"검버섯이 생겼어요    "</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="background:#9C27B0; color:white; border-radius:6px; padding:4px 12px; font-size:12px; font-weight:bold; white-space:nowrap;">단계 2</div>
+          <div style="flex:1;">품사 태깅 (okt.pos, stem=True)</div>
+          <div class="fbox purple" style="min-width:180px; font-size:12px;">[("검버섯","Noun"), ("생기다","Verb")]</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="background:#9C27B0; color:white; border-radius:6px; padding:4px 12px; font-size:12px; font-weight:bold; white-space:nowrap;">단계 3</div>
+          <div style="flex:1;">명사·동사·형용사만 남기기 + 2글자 이상 + 불용어 제거</div>
+          <div class="fbox purple" style="min-width:180px; font-size:12px;">["검버섯", "생기다"]</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="background:#9C27B0; color:white; border-radius:6px; padding:4px 12px; font-size:12px; font-weight:bold; white-space:nowrap;">단계 4</div>
+          <div style="flex:1;">공백으로 합치기</div>
+          <div class="fbox purple" style="min-width:180px; font-size:12px;">"검버섯 생기다"</div>
+        </div>
+      </div>
+    </div>
+
+    <h3>품사(POS) 태그 종류</h3>
+    <table>
+      <tr><th class="th-purple">태그</th><th class="th-purple">의미</th><th class="th-purple">예시</th><th class="th-purple">이 프로젝트에서</th></tr>
+      <tr><td>Noun</td><td>명사</td><td>검버섯, 여드름, 피부</td><td>✅ 사용</td></tr>
+      <tr><td>Verb</td><td>동사</td><td>생기다, 없애다, 개선하다</td><td>✅ 사용</td></tr>
+      <tr><td>Adjective</td><td>형용사</td><td>건조하다, 민감하다</td><td>✅ 사용</td></tr>
+      <tr><td>Josa</td><td>조사</td><td>이, 가, 을, 를, 은, 는</td><td>❌ 제거</td></tr>
+      <tr><td>Eomi</td><td>어미</td><td>~었어요, ~습니다</td><td>❌ 제거</td></tr>
+      <tr><td>Punctuation</td><td>구두점</td><td>!, ?, .</td><td>❌ 제거</td></tr>
+    </table>
+
+    <h3>stem=True 옵션이란?</h3>
+    <div class="tip">
+      단어를 <b>기본형</b>으로 바꿔줘요.<br>
+      "생겼어요" → "생기다" / "없애줘요" → "없애다" / "건조했어요" → "건조하다"<br>
+      이렇게 하면 같은 의미의 다양한 표현이 같은 단어로 통일돼서 비교 정확도가 올라가요.
+    </div>
+
+    <h3>불용어(Stopwords)란?</h3>
+    <div class="tip">
+      분석에 도움이 안 되는 단어 목록이에요.<br>
+      "나", "우리", "아", "정말" 같은 단어는 어떤 문장에나 나오기 때문에 유사도 계산에 방해가 돼요.<br>
+      <code>datasets/stopwords.csv</code>에 목록이 저장되어 있고, 파일이 없으면 기본 불용어 18개를 사용해요.
+    </div>
+  </div>
+
+
+  <!-- PART 2: TF-IDF -->
+  <div class="card">
+    <p class="card-title blue">② TF-IDF — 텍스트 벡터화</p>
+
+    <h3>TF-IDF란?</h3>
+    <div class="binfo">
+      <b>TF-IDF(Term Frequency - Inverse Document Frequency)</b>는 단어의 중요도를 숫자로 표현하는 방법이에요.<br>
+      쉽게 말하면 <b>"이 단어가 이 문서에서 얼마나 특별한가"</b> 를 점수로 매기는 거예요.
+    </div>
+
+    <h3>TF (단어 빈도, Term Frequency)</h3>
+    <div class="example">
+      <div class="label">TF = 이 문서에서 단어가 나온 횟수 / 전체 단어 수</div>
+      문서: "검버섯 검버섯 피부 관리" → "검버섯" TF = 2/4 = <b>0.5</b>
+    </div>
+
+    <h3>IDF (역문서 빈도, Inverse Document Frequency)</h3>
+    <div class="example">
+      <div class="label">IDF = log(전체 문서 수 / 이 단어가 나온 문서 수)</div>
+      "피부"는 9031개 중 8000개 문서에 등장 → IDF 낮음 (흔한 단어)<br>
+      "검버섯"은 9031개 중 50개 문서에만 등장 → IDF 높음 (희귀한 단어 = 중요!)
+    </div>
+
+    <div class="formula">
+      TF-IDF(단어) = TF × IDF
+      <div class="comment">희귀하면서 자주 나오는 단어 = 높은 점수 → 이 문서를 대표하는 핵심 단어</div>
+    </div>
+
+    <h3>왜 "피부"보다 "검버섯"이 더 중요할까?</h3>
+    <div class="two-col">
+      <div class="mini-card" style="background:#FFEBEE; border:1px solid #FFCDD2;">
+        <h4 style="color:#B71C1C;">❌ "피부" — TF-IDF 낮음</h4>
+        <p>9031개 문서 거의 모두에 등장<br>→ IDF 값이 매우 낮음<br>→ 어떤 문서와도 비슷해 보임<br>→ 구별에 도움이 안 됨</p>
+      </div>
+      <div class="mini-card" style="background:#E8F5E9; border:1px solid #C8E6C9;">
+        <h4 style="color:#1B5E20;">✅ "검버섯" — TF-IDF 높음</h4>
+        <p>검버섯 관련 소수 문서에만 등장<br>→ IDF 값이 높음<br>→ 검버섯 문서를 딱 집어서 찾음<br>→ 유사도 계산에 결정적 역할</p>
+      </div>
+    </div>
+
+    <h3>벡터화 결과 시각화</h3>
+    <div class="example">
+      <div class="label">"검버섯 생기다" 를 벡터로 변환한 결과 (일부)</div>
+      <div style="margin-top:10px;">
+        <div style="font-size:12px; color:#888; margin-bottom:6px;">각 칸 = 하나의 단어에 대한 TF-IDF 점수</div>
+        <div class="vector-row">
+          <div>
+            <div class="vec-cell vec-zero">0.00</div>
+            <div class="vec-label">건성</div>
+          </div>
+          <div>
+            <div class="vec-cell vec-high">0.82</div>
+            <div class="vec-label">검버섯</div>
+          </div>
+          <div>
+            <div class="vec-cell vec-zero">0.00</div>
+            <div class="vec-label">여드름</div>
+          </div>
+          <div>
+            <div class="vec-cell vec-mid">0.45</div>
+            <div class="vec-label">생기다</div>
+          </div>
+          <div>
+            <div class="vec-cell vec-zero">0.00</div>
+            <div class="vec-label">트러블</div>
+          </div>
+          <div>
+            <div class="vec-cell vec-zero">0.00</div>
+            <div class="vec-label">모공</div>
+          </div>
+          <div>
+            <div class="vec-cell vec-low">0.12</div>
+            <div class="vec-label">피부</div>
+          </div>
+          <div style="display:flex; align-items:center; padding-bottom:18px;">
+            <span style="color:#888; font-size:18px;">···</span>
+          </div>
+        </div>
+        <div style="font-size:12px; color:#888; margin-top:4px;">이런 숫자 배열이 수천 개 단어만큼 이어져요 (고차원 벡터)</div>
+      </div>
+    </div>
+
+    <h3>이 프로젝트에서 TF-IDF 학습 방법</h3>
+    <table>
+      <tr><th class="th-blue">단계</th><th class="th-blue">내용</th><th class="th-blue">관련 파일</th></tr>
+      <tr><td>학습 (사전)</td><td>9031개 피부 상담 질문으로 TF-IDF 모델 학습 — 어떤 단어가 존재하는지, 각 단어의 IDF 값 계산</td><td>tfidf_rebuild.pkl</td></tr>
+      <tr><td>행렬 저장 (사전)</td><td>9031개 질문 각각을 벡터로 변환한 결과를 행렬로 저장 (9031행 × 단어수 열)</td><td>Tfidf_skin_data_rebuild.mtx</td></tr>
+      <tr><td>실시간 변환</td><td>사용자 입력이 들어오면 저장된 모델로 즉시 벡터 변환</td><td>tfidf.transform()</td></tr>
+    </table>
+  </div>
+
+
+  <!-- PART 3: 코사인 유사도 -->
+  <div class="card">
+    <p class="card-title green">③ 코사인 유사도 — 유사도 계산</p>
+
+    <h3>코사인 유사도란?</h3>
+    <div class="ginfo">
+      두 벡터가 <b>얼마나 같은 방향을 가리키는지</b>로 유사도를 측정하는 방법이에요.<br>
+      결과값은 <b>0 ~ 1</b> 사이로, 1에 가까울수록 비슷하고 0에 가까울수록 다른 내용이에요.
+    </div>
+
+    <h3>왜 "거리"가 아닌 "각도"로 비교할까?</h3>
+    <div class="tip">
+      "검버섯"이 10번 나온 긴 문서와 2번 나온 짧은 문서를 비교할 때, 거리로 비교하면 같은 내용인데 다르다고 나와요.<br>
+      각도로 비교하면 두 문서가 같은 단어를 비슷한 비율로 쓰면 같다고 판단해요.<br>
+      즉 <b>문서 길이에 영향을 받지 않아요.</b>
+    </div>
+
+    <div class="formula">
+      코사인 유사도 = (A · B) / (|A| × |B|)
+      <div class="comment">A · B = 두 벡터의 내적 / |A|, |B| = 각 벡터의 크기(길이)</div>
+    </div>
+
+    <h3>유사도 점수 의미</h3>
+    <div class="cosine-visual">
+      <div class="cosine-case case-high">
+        <div style="font-size:30px;">↗↗</div>
+        <div class="score" style="color:#1B5E20;">0.85</div>
+        <div class="desc"><b>매우 유사</b><br>"검버섯 치료" vs<br>"검버섯 완화 방법"<br>같은 단어를 많이 공유</div>
+      </div>
+      <div class="cosine-case case-mid">
+        <div style="font-size:30px;">↗↘</div>
+        <div class="score" style="color:#E65100;">0.40</div>
+        <div class="desc"><b>어느 정도 유사</b><br>"검버섯" vs<br>"색소 침착 케어"<br>일부 단어만 겹침</div>
+      </div>
+      <div class="cosine-case case-low">
+        <div style="font-size:30px;">→↑</div>
+        <div class="score" style="color:#B71C1C;">0.02</div>
+        <div class="desc"><b>거의 무관</b><br>"검버섯" vs<br>"여드름 압출"<br>공통 단어 거의 없음</div>
+      </div>
+    </div>
+
+    <h3>이 프로젝트에서 실제 계산 과정</h3>
+    <div class="example">
+      <div class="label">사용자 입력 → 9031개 데이터와 비교</div>
+      <div style="margin-top:10px; display:flex; flex-direction:column; gap:6px; font-size:13px;">
+        <div style="display:flex; gap:8px; align-items:center;">
+          <div style="width:200px; font-family:monospace; color:#555;">사용자 벡터</div>
+          <div class="vector-row" style="margin:0;">
+            <div class="vec-cell vec-high" style="width:36px;height:36px;font-size:10px;">0.82</div>
+            <div class="vec-cell vec-zero" style="width:36px;height:36px;font-size:10px;">0.00</div>
+            <div class="vec-cell vec-mid" style="width:36px;height:36px;font-size:10px;">0.45</div>
+            <span style="color:#888;">···</span>
+          </div>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <div style="width:200px; font-family:monospace; color:#555;">데이터 행 #1842 (검버섯)</div>
+          <div class="vector-row" style="margin:0;">
+            <div class="vec-cell vec-high" style="width:36px;height:36px;font-size:10px;">0.79</div>
+            <div class="vec-cell vec-zero" style="width:36px;height:36px;font-size:10px;">0.00</div>
+            <div class="vec-cell vec-mid" style="width:36px;height:36px;font-size:10px;">0.38</div>
+            <span style="color:#888;">···</span>
+          </div>
+          <div style="background:#E8F5E9; border:1px solid #A5D6A7; border-radius:6px; padding:4px 10px; font-size:12px; font-weight:bold; color:#1B5E20;">유사도: 0.91</div>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <div style="width:200px; font-family:monospace; color:#555;">데이터 행 #0033 (여드름)</div>
+          <div class="vector-row" style="margin:0;">
+            <div class="vec-cell vec-zero" style="width:36px;height:36px;font-size:10px;">0.00</div>
+            <div class="vec-cell vec-high" style="width:36px;height:36px;font-size:10px;">0.88</div>
+            <div class="vec-cell vec-zero" style="width:36px;height:36px;font-size:10px;">0.00</div>
+            <span style="color:#888;">···</span>
+          </div>
+          <div style="background:#FFEBEE; border:1px solid #FFCDD2; border-radius:6px; padding:4px 10px; font-size:12px; font-weight:bold; color:#B71C1C;">유사도: 0.03</div>
+        </div>
+        <div style="font-size:12px; color:#888; margin-top:4px;">이렇게 9031개를 전부 비교 → 가장 높은 점수의 행 선택</div>
+      </div>
+    </div>
+
+    <h3>linear_kernel 함수를 쓰는 이유</h3>
+    <div class="ginfo">
+      sklearn의 <code>linear_kernel()</code>은 TF-IDF 벡터에 대해 코사인 유사도를 빠르게 계산해줘요.<br>
+      TF-IDF 벡터는 이미 정규화(길이=1)가 되어 있어서 내적(dot product)만 계산해도 코사인 유사도와 같아요.<br>
+      9031개를 동시에 계산해서 결과를 배열로 한 번에 반환하기 때문에 빠른 거예요.
+    </div>
+  </div>
+
+
+  <!-- 세 기술 비교 -->
+  <div class="card">
+    <p class="card-title dark">📊 세 기술 비교 요약</p>
+
+    <table>
+      <tr>
+        <th class="th-dark">항목</th>
+        <th class="th-purple">KoNLPy Okt</th>
+        <th class="th-blue">TF-IDF</th>
+        <th class="th-green">코사인 유사도</th>
+      </tr>
+      <tr>
+        <td><b>역할</b></td>
+        <td>문장 → 핵심 단어 추출</td>
+        <td>단어 → 숫자 벡터 변환</td>
+        <td>벡터 간 유사도 계산</td>
+      </tr>
+      <tr>
+        <td><b>입력</b></td>
+        <td>한국어 문장</td>
+        <td>단어 목록</td>
+        <td>두 개의 숫자 벡터</td>
+      </tr>
+      <tr>
+        <td><b>출력</b></td>
+        <td>핵심 단어 목록</td>
+        <td>숫자 배열 (벡터)</td>
+        <td>유사도 점수 (0~1)</td>
+      </tr>
+      <tr>
+        <td><b>처리 속도</b></td>
+        <td>느림 (JVM 필요)</td>
+        <td>빠름 (행렬 연산)</td>
+        <td>매우 빠름</td>
+      </tr>
+      <tr>
+        <td><b>의미 이해</b></td>
+        <td>품사만 이해</td>
+        <td>단어 빈도만 봄</td>
+        <td>방향(패턴) 비교</td>
+      </tr>
+      <tr>
+        <td><b>관련 파일</b></td>
+        <td>Java JDK 설치 필요</td>
+        <td>tfidf_rebuild.pkl<br>Tfidf_skin_data_rebuild.mtx</td>
+        <td>sklearn linear_kernel</td>
+      </tr>
+    </table>
+
+    <h3>한계점</h3>
+    <div class="example">
+      <div class="label">이 세 가지 방식의 한계</div>
+      <ul style="padding-left:20px; margin-top:8px; font-size:14px; line-height:2;">
+        <li><b>문맥을 이해하지 못해요:</b> "검버섯이 없어졌어요"와 "검버섯이 생겼어요"를 비슷하다고 판단할 수 있어요 (둘 다 "검버섯" 단어 포함)</li>
+        <li><b>동의어를 모르:요</b> "기미"와 "검버섯"이 비슷한 의미인데 다른 단어로 인식해요</li>
+        <li><b>신조어에 약해요:</b> 학습 데이터에 없는 새로운 단어는 벡터 점수가 0이에요</li>
+      </ul>
+    </div>
+    <div class="tip">
+      이 한계를 극복하려면 <b>BERT, KoBERT, Sentence-Transformers</b> 같은 딥러닝 기반 모델을 사용해야 해요. 문맥과 의미를 이해할 수 있지만 속도가 느리고 GPU가 필요해요.
+    </div>
+  </div>
+
+
+  <div style="text-align:center; color:#AAA; font-size:13px; padding-bottom:20px;">
+    AI 분석 기법 보고서 · KoNLPy Okt · TF-IDF · 코사인 유사도 · AI 피부 스킨케어 추천 프로젝트
+  </div>
+
+</div>
+</body>
+</html>

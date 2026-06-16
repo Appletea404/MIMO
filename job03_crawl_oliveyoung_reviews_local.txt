@@ -1,0 +1,206 @@
+"""
+[Job 03] 올리브영 제품 리뷰 크롤링 (무제한 수집 모드) - 초보 개발자용 가이드
+==========================================================================
+이 파일은 파이썬과 웹 크롤링의 기초 지식을 바탕으로 한 줄 한 줄 주석을 달아 놓은 설명서입니다.
+
+핵심 라이브러리 설명:
+1. Playwright: 구글이 만든 브라우저 자동화 도구입니다. 실제 크롬 브라우저를 띄워 사람이 조작하는 것처럼 코딩할 수 있습니다.
+2. BeautifulSoup: 웹 페이지의 HTML 코드에서 내가 원하는 글자(리뷰 등)만 쏙쏙 뽑아내 주는 집게 같은 라이브러리입니다.
+3. CSV: 수집한 데이터를 엑셀에서 열 수 있는 CSV 형식으로 저장해 줍니다.
+"""
+
+# ── 라이브러리 임포트 (필요한 도구들을 가져옵니다) ──────────────────
+from playwright.sync_api import sync_playwright  # 브라우저 제어 도구 (동기식 모드)
+import csv                                        # 데이터를 표 형식(CSV)으로 다루는 도구
+import time                                       # 코드 실행 중 잠깐 멈추게 하는 도구 (Sleep)
+import os                                         # 파일 경로 확인 등 시스템 기능을 다루는 도구
+import random                                     # 무작위 숫자 생성 (사람처럼 불규칙하게 대기하기 위함)
+import re                                         # 정규표현식 (글자 패턴 찾기, 예: "리뷰"라는 글자가 포함된 버튼)
+
+
+def crawl_reviews_stealth():                     # '스텔스(숨김) 모드' 크롤링 함수 정의 시작
+    # 1. 파일 경로 설정
+    input_file  = "./datasets/oliveyoung_product_list.csv"  # 읽어올 제품 목록 파일 (job02의 결과물)
+    output_file = "./datasets/oliveyoung_reviews.csv"      # 수집한 리뷰를 저장할 결과 파일
+
+    # 2. 파일이 존재하는지 검사 (예외 처리)
+    if not os.path.exists(input_file):           # os.path.exists: 파일이 없으면 True 반환
+        print("❌ 제품 목록 파일이 없습니다. job02를 먼저 실행하세요.")
+        return                                   # 함수를 바로 끝내버림
+
+    # 3. 제품 목록을 컴퓨터 메모리로 읽어오기
+    products = []                                # 제품 정보들을 담아둘 빈 바구니(리스트)
+    # open(): 파일을 엶. utf-8-sig: 한글 깨짐 방지 인코딩. f라는 이름으로 파일 객체를 할당.
+    with open(input_file, "r", encoding="utf-8-sig") as f: 
+        reader   = csv.DictReader(f)             # 엑셀의 첫 줄(헤더)을 기준으로 딕셔너리 형태로 읽음
+        products = list(reader)                  # 읽은 데이터를 리스트(목록) 형태로 변환
+
+    # 4. 이어받기 기능 (중복 수집 방지)
+    processed_products = set()                   # 이미 수집이 완료된 제품명을 담을 집합(Set)
+    if os.path.exists(output_file):              # 결과 파일이 이미 있다면 (중간에 멈췄다가 다시 하는 경우)
+        with open(output_file, "r", encoding="utf-8-sig") as f:
+            reader = csv.DictReader(f)
+            for row in reader:                   # 저장된 파일의 한 줄씩 읽어서
+                processed_products.add(row['product_name']) # '제품명'만 따로 집합에 저장
+
+    # 5. 아직 처리 안 된 제품들만 골라내기 (리스트 컴프리헨션 문법)
+    # '전체 제품' 중에서 '이미 처리된 제품 집합'에 없는 것만 골라 새로운 리스트 생성
+    target_products = [p for p in products if p['product_name'] not in processed_products]
+
+    if not target_products:                      # 골라냈는데 아무것도 없다면
+        print("✅ 모든 제품 수집이 이미 완료되었습니다.")
+        return                                   # 함수 종료
+
+    print(f"📦 총 {len(target_products)}개의 제품 수집을 시작합니다.")
+
+    # 6. 배치(Batch) 처리 로직 (안정성 확보)
+    # 브라우저를 너무 오래 켜두면 메모리가 꽉 차서 죽으므로, 20개마다 브라우저를 껐다 켭니다.
+    batch_size = 20                              # 한 세트의 크기
+    for i in range(0, len(target_products), batch_size): # range(시작, 끝, 간격)
+        batch = target_products[i:i + batch_size] # 현재 차례의 제품 20개 뭉치
+        print(f"\n🔄 브라우저 세션 시작 "
+              f"({i + 1} ~ {min(i + batch_size, len(target_products))} 번째 제품)")
+
+        # 7. 실제 브라우저 제어 시작
+        with sync_playwright() as p:             # Playwright 통제 시작
+            # headless=False: 사람이 보는 실제 크롬 창을 띄움 (서버는 봇 감지 확률이 낮아짐)
+            browser = p.chromium.launch(headless=False)
+            context = browser.new_context(       # 새로운 브라우저 환경 생성
+                # User-Agent: 브라우저가 서버에 보내는 자기소개서. 일반 리눅스 사용자로 위장.
+                user_agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+                           "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                viewport={'width': 1280, 'height': 1024}, # 창 크기 고정
+            )
+            page = context.new_page()            # 실제 탭(페이지) 하나 생성
+
+            # 스텔스 기술 1: 자바스크립트를 주입해서 브라우저가 "자동화 도구"라는 사실을 숨김
+            page.add_init_script(
+                "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"
+            )
+
+            # 8. 결과 파일 열기 (append 모드 'a' 사용하여 데이터 추가)
+            with open(output_file, "a", newline="", encoding="utf-8-sig") as f:
+                writer = csv.DictWriter(
+                    f, fieldnames=["product_name", "star", "skin_type", "review"]
+                )
+                # 파일이 0바이트(새로 만듦)인 경우에만 첫 줄(헤더)을 작성함
+                if not os.path.exists(output_file) or os.path.getsize(output_file) == 0:
+                    writer.writeheader()
+
+                # 9. 제품 하나씩 상세 페이지 방문
+                for prod in batch:
+                    print(f"\n👉 {prod['product_name']} 분석 중...")
+                    try:
+                        # &tab=review: 주소 끝에 파라미터를 붙여 '리뷰 탭'이 바로 열리게 유도
+                        review_url = f"{prod['product_link']}&tab=review"
+                        page.goto(review_url, wait_until="load", timeout=90000) # 페이지 이동
+                        # 스텔스 기술 2: 무작위 대기 (5~8초). 기계처럼 딱딱 움직이지 않기 위함.
+                        time.sleep(random.uniform(5, 8))
+
+                        # ── 리뷰 유무 확인 ──────────────────────────
+                        total_count_text = "0"
+                        try:
+                            # locator: 요소를 찾는 최신 문법. .total-count 클래스를 찾음.
+                            count_el = page.locator(".total-count").first
+                            if count_el.is_visible():
+                                total_count_text = count_el.inner_text() # 화면의 텍스트 추출
+                        except:
+                            pass
+
+                        if "0건" in total_count_text: # 리뷰가 0건이면 시간 낭비하지 않고 다음 제품으로
+                            print("  ℹ️ 리뷰가 없는 상품입니다. 스킵.")
+                            continue
+
+                        # 10. 페이지네이션 루프 (모든 리뷰 페이지 순회)
+                        p_idx = 1
+                        while True:              # 무한 반복 시작 (마지막 페이지에서 break)
+                            # evaluate: 브라우저 내부에서 JS 실행. 화면을 맨 아래로 내려 데이터 로딩 유도.
+                            page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+                            time.sleep(2)        # 스크롤 후 데이터가 뜰 때까지 잠시 대기
+
+                            # 섀도우 돔 관통 기술: 올리브영의 특수 태그 <oy-review-review-item>을 직접 찾음
+                            # Playwright는 섀도우 돔 장벽을 자동으로 무시하고 내부로 들어갑니다.
+                            items = page.locator("oy-review-review-item").all()
+                            if not items:        # 한 번 더 재시도 (느린 로딩 대응)
+                                print(f"    ⚠️ Page {p_idx}: 리뷰 아이템 로드 실패. (재시도 중...)")
+                                time.sleep(3)
+                                items = page.locator("oy-review-review-item").all()
+
+                            if not items:        # 그래도 없으면 더 이상 리뷰가 없는 것으로 판단
+                                break
+
+                            count = 0
+                            for item in items:   # 찾아낸 리뷰 조각들을 하나씩 분석
+                                try:
+                                    # 리뷰 본문: <oy-review-review-content> 태그 내의 <p> 태그 텍스트
+                                    content = item.locator(
+                                        "oy-review-review-content p"
+                                    ).inner_text(timeout=5000)
+
+                                    # 피부 타입: <oy-review-review-user> 내의 <.skin-type> 클래스 글자들
+                                    skin_info_elements = item.locator(
+                                        "oy-review-review-user .skin-type"
+                                    ).all()
+                                    # 여러 개(지성, 웜톤 등)의 정보를 " / "로 이어 붙여 하나로 만듦
+                                    skin_info = " / ".join(
+                                        [el.inner_text() for el in skin_info_elements]
+                                    )
+
+                                    # 11. 데이터 저장 전 필터링
+                                    # 내용이 10자 이상인 진짜 사용자 후기만 파일에 씀
+                                    if len(content.strip()) > 10:
+                                        writer.writerow({
+                                            "product_name": prod['product_name'],
+                                            "star":         "5",   # 별점 수집은 생략하고 5로 고정
+                                            "skin_type":    skin_info,
+                                            "review":       content.strip(),
+                                        })
+                                        count += 1
+                                except:
+                                    continue     # 리뷰 한 건에서 에러 나도 다음 리뷰로 진행
+
+                            print(f"    Page {p_idx}: {count}개 리뷰 저장")
+
+                            # 12. 다음 페이지 버튼 클릭 처리
+                            try:
+                                next_p   = p_idx + 1
+                                # data-page-no 속성값이 '현재페이지+1'인 <a> 태그를 찾음
+                                next_btn = page.locator(f"a[data-page-no='{next_p}']")
+
+                                # 10페이지 단위 화살표 대응 (예: 11페이지로 넘어갈 때)
+                                if not next_btn.is_visible():
+                                    # 'next' 클래스를 가진 화살표 버튼 탐색
+                                    next_arrow = page.locator(
+                                        "button[class*='next'], .pagination-next"
+                                    ).first
+                                    if next_arrow.is_visible():
+                                        next_arrow.click() # 화살표 클릭
+                                        time.sleep(3)     # 번호 로딩 대기
+                                        next_btn = page.locator(f"a[data-page-no='{next_p}']")
+
+                                if next_btn.is_visible():
+                                    next_btn.click()     # 다음 번호 클릭
+                                    p_idx += 1           # 페이지 인덱스 1 증가
+                                    time.sleep(random.uniform(2, 4)) # 페이지 로딩 대기
+                                else:
+                                    print("    🏁 마지막 페이지입니다.")
+                                    break                # 더 이상 페이지 버튼이 없으면 반복 종료
+                            except:
+                                break                    # 예외 발생 시 종료
+
+                        f.flush()  # 파일에 즉시 기록 (저장 누락 방지)
+
+                    except Exception as e:
+                        print(f"  ❌ 상품 처리 중 오류 (스킵): {e}")
+                        continue                         # 이 상품은 실패해도 다음 상품으로 넘어감
+
+            browser.close()                              # 브라우저 종료 (배치 세트 끝)
+            # IP 차단을 피하기 위해 한 세트가 끝나면 10초간 시원하게 휴식
+            print(f"☕ 한 세트 완료. 차단 방지를 위해 10초 휴식...")
+            time.sleep(10)
+
+    print("\n✨ [임무 완료] 모든 카테고리 제품의 모든 리뷰를 수집했습니다!")
+
+
+if __name__ == "__main__":                       # 파이썬 실행 시작점
+    crawl_reviews_stealth()                      # 정의한 메인 함수 실행
